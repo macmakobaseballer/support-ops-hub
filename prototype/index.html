@@ -698,7 +698,7 @@ function renderSidebar() {
     }).join('');
 
     document.getElementById('sidebar-nav').innerHTML = `
-        <div class="sidebar-section">メイン</div>
+        <div class="sidebar-section">サマリ</div>
         <a class="sidebar-item ${v === 'dashboard' ? 'active' : ''}" onclick="navigate('dashboard')">
             <i class="bi bi-speedometer2"></i> ダッシュボード
         </a>
@@ -706,7 +706,7 @@ function renderSidebar() {
             <i class="bi bi-ticket-perforated"></i> 問い合わせ一覧
         </a>
 
-        <div class="sidebar-section mt-3">顧客企業</div>
+        <div class="sidebar-section mt-3">顧客・システム</div>
         ${customerNav}
 
         <div class="sidebar-section mt-3">マスタ管理</div>
