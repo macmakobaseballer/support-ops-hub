@@ -9,13 +9,17 @@
     <style>
         :root {
             --sidebar-width: 240px;
-            --sidebar-bg: #1e293b;
-            --sidebar-text: #94a3b8;
-            --sidebar-active: #3b82f6;
+            --sidebar-bg: #005461;
+            --sidebar-text: rgba(255,255,255,0.6);
+            --sidebar-active: #00B7B5;
+            --color-primary:   #005461;
+            --color-secondary: #018790;
+            --color-accent:    #00B7B5;
+            --color-bg:        #F4F4F4;
         }
 
         body {
-            background: #f1f5f9;
+            background: var(--color-bg);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
@@ -25,7 +29,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background: linear-gradient(135deg, #005461 0%, #018790 100%);
         }
 
         .login-card {
@@ -55,14 +59,14 @@
             color: white;
             font-size: 1.05rem;
             font-weight: 700;
-            border-bottom: 1px solid #334155;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
             margin-bottom: 10px;
             flex-shrink: 0;
         }
 
         .sidebar-section {
             padding: 8px 16px 4px;
-            color: #64748b;
+            color: rgba(255,255,255,0.35);
             font-size: 0.7rem;
             font-weight: 600;
             text-transform: uppercase;
@@ -84,7 +88,7 @@
         }
 
         .sidebar-item:hover {
-            background: #334155;
+            background: #018790;
             color: white;
         }
 
@@ -96,7 +100,7 @@
         .sidebar-footer {
             margin-top: auto;
             padding: 16px 20px;
-            border-top: 1px solid #334155;
+            border-top: 1px solid rgba(255,255,255,0.15);
             color: var(--sidebar-text);
             font-size: 0.85rem;
             flex-shrink: 0;
@@ -276,6 +280,33 @@
             margin-bottom: 14px;
         }
 
+        /* ===== BOOTSTRAP OVERRIDES ===== */
+        .btn-primary {
+            background-color: #018790;
+            border-color: #018790;
+        }
+        .btn-primary:hover, .btn-primary:focus, .btn-primary:active,
+        .btn-primary.active, .show > .btn-primary.dropdown-toggle {
+            background-color: #005461;
+            border-color: #005461;
+        }
+        .btn-outline-primary {
+            color: #018790;
+            border-color: #018790;
+        }
+        .btn-outline-primary:hover {
+            background-color: #018790;
+            border-color: #018790;
+            color: white;
+        }
+        .progress-bar { background-color: #00B7B5; }
+        .form-control:focus, .form-select:focus {
+            border-color: #00B7B5;
+            box-shadow: 0 0 0 0.2rem rgba(0,183,181,0.2);
+        }
+        a { color: #018790; }
+        a:hover { color: #005461; }
+
         /* ===== CUSTOMER NAV ===== */
         .customer-header {
             display: flex;
@@ -291,8 +322,8 @@
             user-select: none;
         }
 
-        .customer-header:hover { background: #334155; color: white; }
-        .customer-header.cust-active { color: white; background: #1e3a5f; }
+        .customer-header:hover { background: #018790; color: white; }
+        .customer-header.cust-active { color: white; background: #018790; }
 
         .customer-chevron {
             font-size: 0.65rem;
@@ -318,8 +349,8 @@
             transition: all 0.15s;
         }
 
-        .system-nav-item:hover { background: #334155; color: #e2e8f0; }
-        .system-nav-item.active { background: #334155; color: white; }
+        .system-nav-item:hover { background: #018790; color: white; }
+        .system-nav-item.active { background: #018790; color: white; }
 
         .system-badge {
             margin-left: auto;
@@ -825,7 +856,7 @@ function renderDashboard(area, actions) {
         data: {
             labels: months.map(m => m.label),
             datasets: [{ label: '件数', data: monthCounts,
-                backgroundColor: '#3b82f620', borderColor: '#3b82f6', borderWidth: 2, borderRadius: 4 }],
+                backgroundColor: '#00B7B530', borderColor: '#00B7B5', borderWidth: 2, borderRadius: 4 }],
         },
         options: { responsive: true, plugins: { legend: { display: false } },
             scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
@@ -839,7 +870,7 @@ function renderDashboard(area, actions) {
         type: 'doughnut',
         data: {
             labels: ['操作方法', 'バグ報告', '設定変更', 'データ修正'],
-            datasets: [{ data: typeData, backgroundColor: ['#3b82f6','#ef4444','#f59e0b','#8b5cf6'] }],
+            datasets: [{ data: typeData, backgroundColor: ['#00B7B5','#ef4444','#f59e0b','#018790'] }],
         },
         options: { responsive: true,
             plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } } },
@@ -1596,7 +1627,7 @@ function renderCustomerReport(area, actions, customerId) {
         data: {
             labels: months.map(m => m.label),
             datasets: [{ label: '件数', data: monthCounts,
-                backgroundColor: '#3b82f620', borderColor: '#3b82f6', borderWidth: 2, borderRadius: 4 }],
+                backgroundColor: '#00B7B530', borderColor: '#00B7B5', borderWidth: 2, borderRadius: 4 }],
         },
         options: { responsive: true, plugins: { legend: { display: false } },
             scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
@@ -1609,7 +1640,7 @@ function renderCustomerReport(area, actions, customerId) {
         type: 'doughnut',
         data: {
             labels: ['操作方法', 'バグ報告', '設定変更', 'データ修正'],
-            datasets: [{ data: typeData, backgroundColor: ['#3b82f6','#ef4444','#f59e0b','#8b5cf6'] }],
+            datasets: [{ data: typeData, backgroundColor: ['#00B7B5','#ef4444','#f59e0b','#018790'] }],
         },
         options: { responsive: true,
             plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 8 } } } },
