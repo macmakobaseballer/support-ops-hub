@@ -712,6 +712,7 @@ function renderSidebar() {
         <div class="sidebar-section mt-3">顧客・システム</div>
         ${customerNav}
 
+        ${state.currentUser.role === 'admin' ? `
         <div class="sidebar-section mt-3">マスタ管理</div>
         <a class="sidebar-item ${v === 'customers' ? 'active' : ''}" onclick="navigate('customers')">
             <i class="bi bi-building"></i> 顧客企業
@@ -721,7 +722,7 @@ function renderSidebar() {
         </a>
         <a class="sidebar-item ${v === 'users' ? 'active' : ''}" onclick="navigate('users')">
             <i class="bi bi-people"></i> ユーザー管理
-        </a>
+        </a>` : ''}
     `;
 }
 
@@ -1010,8 +1011,8 @@ function renderTicketDetail(area, actions, ticketId) {
     };
 
     actions.innerHTML = `
-        <button class="btn btn-outline-secondary btn-sm me-2" onclick="navigate('tickets')">
-            <i class="bi bi-arrow-left"></i> 一覧へ
+        <button class="btn btn-outline-secondary btn-sm me-2" onclick="navigate('system-dashboard',{id:${ticket.systemId}})">
+            <i class="bi bi-arrow-left"></i> ${sys ? sys.name + ' 一覧へ' : '一覧へ'}
         </button>
         <button class="btn btn-primary btn-sm" onclick="openTicketForm(${ticket.id})">
             <i class="bi bi-pencil"></i> 編集
@@ -1269,10 +1270,10 @@ function saveTicket() {
     saveDb();
     bootstrap.Modal.getInstance(document.getElementById('ticketModal')).hide();
 
-    if (state.currentView === 'ticket-detail' && state.editingTicketId) {
+    if (state.editingTicketId) {
         navigate('ticket-detail', { id: state.editingTicketId });
     } else {
-        navigate('tickets');
+        navigate('system-dashboard', { id: sysId });
     }
 }
 
