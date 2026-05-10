@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Ops Hub - 問い合わせ管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 240px;
+            --sidebar-bg: #1e293b;
+            --sidebar-text: #94a3b8;
+            --sidebar-active: #3b82f6;
+        }
+
+        body {
+            background: #f1f5f9;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* ===== LOGIN ===== */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        /* ===== SIDEBAR ===== */
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            padding: 20px;
+            color: white;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-section {
+            padding: 8px 16px 4px;
+            color: #64748b;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 16px;
+            color: var(--sidebar-text);
+            cursor: pointer;
+            border-radius: 6px;
+            margin: 1px 8px;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .sidebar-item:hover {
+            background: #334155;
+            color: white;
+        }
+
+        .sidebar-item.active {
+            background: var(--sidebar-active);
+            color: white;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 20px;
+            border-top: 1px solid #334155;
+            color: var(--sidebar-text);
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        /* ===== MAIN ===== */
+        #app-main {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .page-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .content-area {
+            padding: 24px 28px;
+            flex: 1;
+        }
+
+        /* ===== STAT CARDS ===== */
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px 24px;
+            border-left: 4px solid;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+            cursor: pointer;
+            transition: box-shadow 0.15s;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .stat-card .label {
+            font-size: 0.78rem;
+            color: #64748b;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .stat-card .value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1;
+            margin-top: 6px;
+        }
+
+        /* ===== STATUS / PRIORITY BADGES ===== */
+        .badge-status-new         { background-color: #dbeafe; color: #1d4ed8; font-weight: 500; }
+        .badge-status-in_progress { background-color: #fef3c7; color: #b45309; font-weight: 500; }
+        .badge-status-waiting     { background-color: #ede9fe; color: #7c3aed; font-weight: 500; }
+        .badge-status-done        { background-color: #dcfce7; color: #166534; font-weight: 500; }
+
+        .badge-priority-high      { background-color: #fee2e2; color: #dc2626; font-weight: 500; }
+        .badge-priority-medium    { background-color: #fef3c7; color: #b45309; font-weight: 500; }
+        .badge-priority-low       { background-color: #f0fdf4; color: #166534; font-weight: 500; }
+
+        /* ===== DATA TABLE ===== */
+        .data-table {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+            overflow: hidden;
+        }
+
+        .data-table table { margin: 0; }
+
+        .data-table thead th {
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            color: #475569;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 11px 16px;
+            white-space: nowrap;
+        }
+
+        .data-table tbody td {
+            padding: 11px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.875rem;
+        }
+
+        .data-table tbody tr:hover { background: #f8fafc; cursor: pointer; }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            background: white;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-bar select,
+        .filter-bar input {
+            font-size: 0.83rem;
+            border-color: #e2e8f0;
+        }
+
+        /* ===== FORM CARD ===== */
+        .form-card {
+            background: white;
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+        }
+
+        .form-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* ===== COMMENTS ===== */
+        .comment-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .comment-item:last-child { border-bottom: none; }
+
+        .comment-meta {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        /* ===== CHART CARD ===== */
+        .chart-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+        }
+
+        .chart-card-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            margin-bottom: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login-view">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="text-center mb-4">
+                <div style="font-size:1.4rem; font-weight:700; color:#1e293b;">
+                    <i class="bi bi-headset" style="color:#3b82f6;"></i> Support Ops Hub
+                </div>
+                <div class="text-muted small mt-1">問い合わせ管理システム</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold text-secondary">メールアドレス</label>
+                <input type="email" class="form-control" id="login-email" value="admin@example.com">
+            </div>
+            <div class="mb-4">
+                <label class="form-label small fw-semibold text-secondary">パスワード</label>
+                <input type="password" class="form-control" id="login-pass" value="password">
+            </div>
+            <button class="btn btn-primary w-100" onclick="doLogin()">ログイン</button>
+            <div class="text-center mt-3 text-muted" style="font-size:0.78rem;">
+                デモ用アカウント: admin@example.com / password
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app-view" style="display:none;">
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div class="sidebar-logo">
+            <i class="bi bi-headset" style="color:#3b82f6;"></i> Support Ops Hub
+        </div>
+
+        <div class="sidebar-section">メイン</div>
+        <a class="sidebar-item" onclick="navigate('dashboard')" data-view="dashboard">
+            <i class="bi bi-speedometer2"></i> ダッシュボード
+        </a>
+        <a class="sidebar-item" onclick="navigate('tickets')" data-view="tickets">
+            <i class="bi bi-ticket-perforated"></i> 問い合わせ一覧
+        </a>
+
+        <div class="sidebar-section mt-2">マスタ管理</div>
+        <a class="sidebar-item" onclick="navigate('customers')" data-view="customers">
+            <i class="bi bi-building"></i> 顧客企業
+        </a>
+        <a class="sidebar-item" onclick="navigate('systems')" data-view="systems">
+            <i class="bi bi-server"></i> システム
+        </a>
+        <a class="sidebar-item" onclick="navigate('users')" data-view="users">
+            <i class="bi bi-people"></i> ユーザー管理
+        </a>
+
+        <div class="sidebar-footer">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-person-circle fs-5"></i>
+                <div>
+                    <div id="sidebar-username" class="text-white" style="font-size:0.85rem;"></div>
+                    <div style="font-size:0.75rem;">
+                        <a href="#" onclick="doLogout()" style="color:#64748b;">ログアウト</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div id="app-main">
+        <div class="page-header">
+            <h1 class="page-title" id="page-title">ダッシュボード</h1>
+            <div id="page-actions"></div>
+        </div>
+        <div class="content-area" id="content-area"></div>
+    </div>
+</div>
+
+<!-- Modal: チケット -->
+<div class="modal fade" id="ticketModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ticketModalTitle">問い合わせ登録</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="ticketModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" onclick="saveTicket()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: 顧客企業 -->
+<div class="modal fade" id="customerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customerModalTitle">顧客企業登録</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="customerModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" onclick="saveCustomer()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: システム -->
+<div class="modal fade" id="systemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="systemModalTitle">システム登録</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="systemModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" onclick="saveSystem()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ============================================================
+// 定数
+// ============================================================
+const PRIORITY_DEFAULTS = { question: 'medium', bug: 'high', config: 'medium', data: 'medium' };
+
+const PRIORITY_LABELS = { high: '高', medium: '中', low: '低' };
+const TYPE_LABELS = {
+    question: '操作方法の質問',
+    bug:      'バグ報告',
+    config:   '設定変更依頼',
+    data:     'データ修正依頼',
+};
+const STATUS_LABELS = {
+    new:         '新規受付',
+    in_progress: '対応中',
+    waiting:     '確認待ち',
+    done:        '完了',
+};
+
+// ============================================================
+// 初期データ
+// ============================================================
+const DEFAULT_DATA = {
+    users: [
+        { id: 1, name: '田中 太郎',  email: 'admin@example.com',       password: 'password', role: 'admin',  active: true },
+        { id: 2, name: '鈴木 花子',  email: 'suzuki@example.com',      password: 'password', role: 'member', active: true },
+        { id: 3, name: '佐藤 一郎',  email: 'sato@example.com',        password: 'password', role: 'member', active: true },
+        { id: 4, name: '高橋 美咲',  email: 'takahashi@example.com',   password: 'password', role: 'member', active: true },
+        { id: 5, name: '渡辺 健',    email: 'watanabe@example.com',    password: 'password', role: 'member', active: true },
+    ],
+    customers: [
+        { id: 1, name: 'ABC株式会社', note: '主要顧客',   active: true },
+        { id: 2, name: 'XYZ商事',    note: '',           active: true },
+        { id: 3, name: '山田製作所',  note: '製造業',     active: true },
+    ],
+    systems: [
+        { id: 1, customerId: 1, name: '販売管理システム',   description: '受発注・売上管理',   assigneeIds: [1, 2], active: true },
+        { id: 2, customerId: 1, name: '在庫管理システム',   description: '倉庫・在庫管理',     assigneeIds: [1, 2], active: true },
+        { id: 3, customerId: 2, name: '受注管理システム',   description: '注文受付',           assigneeIds: [3, 4], active: true },
+        { id: 4, customerId: 2, name: '経費精算システム',   description: '社内経費処理',       assigneeIds: [3, 4], active: true },
+        { id: 5, customerId: 3, name: '生産管理システム',   description: '製造ライン管理',     assigneeIds: [1, 5], active: true },
+        { id: 6, customerId: 3, name: '品質管理システム',   description: '品質検査・記録',     assigneeIds: [5],    active: true },
+    ],
+    tickets: [
+        { id:  1, customerId: 1, systemId: 1, type: 'bug',      priority: 'high',   status: 'new',         title: 'CSVエクスポートが途中で止まる',         description: '1000件以上のデータをエクスポートすると処理が止まる。再現手順：管理画面 > 一覧 > CSV出力を選択し件数を1000件超にする。', assigneeId: 2, createdAt: '2026-05-01T09:00:00', comments: [], },
+        { id:  2, customerId: 1, systemId: 1, type: 'question', priority: 'medium', status: 'in_progress', title: '検索条件の保存方法がわからない',         description: '毎回同じ条件で検索するが、条件を保存できないか確認したい。',                                                        assigneeId: 1, createdAt: '2026-05-02T10:30:00', comments: [{ userId: 1, text: '設定画面 > お気に入り検索から保存が可能です。手順をマニュアルに追記します。', createdAt: '2026-05-02T11:00:00' }], },
+        { id:  3, customerId: 2, systemId: 3, type: 'bug',      priority: 'high',   status: 'waiting',     title: '注文確認メールが送信されない',           description: '昨日から注文確認メールが届かないと複数ユーザーから報告がある。',                                                        assigneeId: 3, createdAt: '2026-05-03T14:00:00', comments: [{ userId: 3, text: 'メールサーバーの設定を確認中です。ご確認をお願いします。', createdAt: '2026-05-04T09:00:00' }], },
+        { id:  4, customerId: 3, systemId: 5, type: 'config',   priority: 'medium', status: 'in_progress', title: '生産ラインBの設定追加依頼',             description: '新設した生産ラインBをシステムに追加してほしい。',                                                                      assigneeId: 5, createdAt: '2026-05-04T09:30:00', comments: [], },
+        { id:  5, customerId: 1, systemId: 2, type: 'data',     priority: 'medium', status: 'done',        title: '在庫数の修正依頼',                      description: '商品コードA001の在庫数が実数と一致しない。正しくは在庫50個。',                                                          assigneeId: 2, createdAt: '2026-04-28T13:00:00', comments: [{ userId: 2, text: '確認・修正しました。在庫数を50に更新済みです。', createdAt: '2026-04-29T10:00:00' }], },
+        { id:  6, customerId: 2, systemId: 4, type: 'question', priority: 'medium', status: 'new',         title: '領収書の印刷フォーマット変更方法',       description: '会社のフォーマットに合わせた領収書を印刷したい。',                                                                    assigneeId: null, createdAt: '2026-05-05T11:00:00', comments: [], },
+        { id:  7, customerId: 3, systemId: 6, type: 'bug',      priority: 'high',   status: 'new',         title: '検査結果の集計値が合わない',             description: '月次レポートの集計値が手動計算と一致しない。差異：約5%。',                                                              assigneeId: null, createdAt: '2026-05-06T15:00:00', comments: [], },
+        { id:  8, customerId: 1, systemId: 1, type: 'question', priority: 'medium', status: 'done',        title: '権限設定の追加方法',                    description: '新しいスタッフの権限をどう設定するか。',                                                                              assigneeId: 1, createdAt: '2026-04-20T09:00:00', comments: [{ userId: 1, text: '管理画面 > ユーザー設定から追加できます。', createdAt: '2026-04-20T09:30:00' }], },
+        { id:  9, customerId: 2, systemId: 3, type: 'config',   priority: 'medium', status: 'done',        title: '受注番号の採番ルール変更',              description: '年度が変わったため採番ルールを2026年度対応に変更したい。',                                                              assigneeId: 4, createdAt: '2026-04-25T10:00:00', comments: [], },
+        { id: 10, customerId: 3, systemId: 5, type: 'question', priority: 'medium', status: 'in_progress', title: '日報データのエクスポート方法',           description: '月次の日報データをExcelで取り出したい。',                                                                            assigneeId: 5, createdAt: '2026-05-07T09:00:00', comments: [], },
+        { id: 11, customerId: 1, systemId: 2, type: 'bug',      priority: 'high',   status: 'in_progress', title: 'バーコードスキャナー連携が動かない',     description: '特定の端末でバーコード読み取り後にエラーが出る。端末型番：BT-200。',                                                  assigneeId: 2, createdAt: '2026-05-08T08:30:00', comments: [], },
+        { id: 12, customerId: 2, systemId: 4, type: 'data',     priority: 'medium', status: 'waiting',     title: '過去の経費データの修正',               description: '3月分の経費データに入力ミスがある。修正対象の一覧を別途共有します。',                                                  assigneeId: 3, createdAt: '2026-05-08T14:00:00', comments: [{ userId: 3, text: '修正対象リストを受領しました。内容確認中です。', createdAt: '2026-05-09T09:00:00' }], },
+    ],
+    nextIds: { ticket: 13, customer: 4, system: 7 },
+};
+
+// ============================================================
+// DB（localStorage）
+// ============================================================
+function loadDb() {
+    const saved = localStorage.getItem('supportOpsHub_v1');
+    return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+
+function saveDb() {
+    localStorage.setItem('supportOpsHub_v1', JSON.stringify(db));
+}
+
+let db = loadDb();
+
+// ============================================================
+// アプリ状態
+// ============================================================
+let state = {
+    currentView: 'login',
+    currentUser: null,
+    editingTicketId: null,
+    editingCustomerId: null,
+    editingSystemId: null,
+    filters: { status: '', priority: '', type: '', customerId: '', systemId: '', keyword: '' },
+};
+
+// ============================================================
+// 認証
+// ============================================================
+function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass  = document.getElementById('login-pass').value;
+    const user  = db.users.find(u => u.email === email && u.password === pass && u.active);
+    if (!user) { alert('メールアドレスまたはパスワードが正しくありません'); return; }
+
+    state.currentUser = user;
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('app-view').style.display = 'block';
+    document.getElementById('sidebar-username').textContent = user.name;
+    navigate('dashboard');
+}
+
+function doLogout() {
+    state.currentUser = null;
+    document.getElementById('app-view').style.display = 'none';
+    document.getElementById('login-view').style.display = 'block';
+}
+
+// ============================================================
+// ナビゲーション
+// ============================================================
+const VIEW_TITLES = {
+    dashboard:      'ダッシュボード',
+    tickets:        '問い合わせ一覧',
+    'ticket-detail':'問い合わせ詳細',
+    customers:      '顧客企業マスタ',
+    systems:        'システムマスタ',
+    users:          'ユーザー管理',
+};
+
+function navigate(view, params = {}) {
+    state.currentView = view;
+    document.getElementById('page-title').textContent = VIEW_TITLES[view] || view;
+
+    document.querySelectorAll('.sidebar-item').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-view') === view);
+    });
+
+    const area    = document.getElementById('content-area');
+    const actions = document.getElementById('page-actions');
+    actions.innerHTML = '';
+
+    // Chart.jsの既存インスタンスを破棄
+    Chart.helpers.each(Chart.instances, c => c.destroy());
+
+    switch (view) {
+        case 'dashboard':      renderDashboard(area, actions);              break;
+        case 'tickets':        renderTicketList(area, actions);             break;
+        case 'ticket-detail':  renderTicketDetail(area, actions, params.id); break;
+        case 'customers':      renderCustomers(area, actions);              break;
+        case 'systems':        renderSystems(area, actions);                break;
+        case 'users':          renderUsers(area, actions);                  break;
+    }
+}
+
+// ============================================================
+// ヘルパー
+// ============================================================
+const getCustomer = id => db.customers.find(c => c.id === id);
+const getSystem   = id => db.systems.find(s => s.id === id);
+const getUser     = id => db.users.find(u => u.id === id);
+
+function statusBadge(status) {
+    return `<span class="badge badge-status-${status}">${STATUS_LABELS[status]}</span>`;
+}
+
+function priorityBadge(priority) {
+    return `<span class="badge badge-priority-${priority}">${PRIORITY_LABELS[priority]}</span>`;
+}
+
+function fmtDate(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fmtDateShort(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
+}
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+// ============================================================
+// ダッシュボード
+// ============================================================
+function renderDashboard(area, actions) {
+    const tickets = db.tickets;
+    const counts = {
+        new:         tickets.filter(t => t.status === 'new').length,
+        in_progress: tickets.filter(t => t.status === 'in_progress').length,
+        waiting:     tickets.filter(t => t.status === 'waiting').length,
+        done:        tickets.filter(t => t.status === 'done').length,
+    };
+
+    // 過去6ヶ月分
+    const today = new Date('2026-05-10');
+    const months = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(today.getFullYear(), today.getMonth() - (5 - i), 1);
+        return { label: `${d.getFullYear()}/${pad(d.getMonth()+1)}`, y: d.getFullYear(), m: d.getMonth() };
+    });
+    const monthCounts = months.map(m =>
+        tickets.filter(t => { const d = new Date(t.createdAt); return d.getFullYear() === m.y && d.getMonth() === m.m; }).length
+    );
+
+    // システム別未完了件数
+    const systemCounts = db.systems.map(s => ({
+        name:  s.name,
+        count: tickets.filter(t => t.systemId === s.id && t.status !== 'done').length,
+    })).filter(s => s.count > 0).sort((a, b) => b.count - a.count).slice(0, 6);
+
+    const maxSys = Math.max(...systemCounts.map(s => s.count), 1);
+
+    area.innerHTML = `
+        <!-- ステータスカード -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card" style="border-color:#3b82f6;" onclick="navigate('tickets'); setFilter('status','new')">
+                    <div class="label"><i class="bi bi-inbox"></i> 新規受付</div>
+                    <div class="value" style="color:#3b82f6;">${counts.new}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card" style="border-color:#f59e0b;" onclick="navigate('tickets'); setFilter('status','in_progress')">
+                    <div class="label"><i class="bi bi-arrow-clockwise"></i> 対応中</div>
+                    <div class="value" style="color:#f59e0b;">${counts.in_progress}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card" style="border-color:#8b5cf6;" onclick="navigate('tickets'); setFilter('status','waiting')">
+                    <div class="label"><i class="bi bi-hourglass-split"></i> 確認待ち</div>
+                    <div class="value" style="color:#8b5cf6;">${counts.waiting}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card" style="border-color:#22c55e;">
+                    <div class="label"><i class="bi bi-check-circle"></i> 完了（累計）</div>
+                    <div class="value" style="color:#22c55e;">${counts.done}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- グラフ -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-8">
+                <div class="chart-card">
+                    <div class="chart-card-title">月次問い合わせ件数推移</div>
+                    <canvas id="monthlyChart" height="90"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="chart-card">
+                    <div class="chart-card-title">種別内訳（未完了）</div>
+                    <canvas id="typeChart" height="160"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内訳 -->
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="chart-card">
+                    <div class="chart-card-title">システム別 未完了件数</div>
+                    ${systemCounts.length === 0
+                        ? '<p class="text-muted small mb-0">未完了の問い合わせはありません</p>'
+                        : `<table class="table table-sm mb-0">
+                            <tbody>${systemCounts.map(s => `
+                            <tr>
+                                <td class="text-muted small ps-0">${s.name}</td>
+                                <td class="fw-bold" style="width:40px;">${s.count}</td>
+                                <td style="width:50%;">
+                                    <div class="progress" style="height:6px;">
+                                        <div class="progress-bar bg-primary" style="width:${Math.round(s.count/maxSys*100)}%;"></div>
+                                    </div>
+                                </td>
+                            </tr>`).join('')}
+                            </tbody>
+                          </table>`}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-card">
+                    <div class="chart-card-title">優先度別 未完了件数</div>
+                    <div class="d-flex gap-3">
+                        ${['high','medium','low'].map(p => {
+                            const cnt = tickets.filter(t => t.priority === p && t.status !== 'done').length;
+                            return `<div class="text-center flex-fill p-3 rounded" style="background:#f8fafc;">
+                                <div class="fw-bold fs-3">${cnt}</div>
+                                <div class="mt-1">${priorityBadge(p)}</div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 月次棒グラフ
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'bar',
+        data: {
+            labels: months.map(m => m.label),
+            datasets: [{ label: '件数', data: monthCounts,
+                backgroundColor: '#3b82f620', borderColor: '#3b82f6', borderWidth: 2, borderRadius: 4 }],
+        },
+        options: { responsive: true, plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+    });
+
+    // 種別ドーナツ
+    const typeData = ['question','bug','config','data'].map(t =>
+        tickets.filter(tk => tk.type === t && tk.status !== 'done').length
+    );
+    new Chart(document.getElementById('typeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['操作方法', 'バグ報告', '設定変更', 'データ修正'],
+            datasets: [{ data: typeData, backgroundColor: ['#3b82f6','#ef4444','#f59e0b','#8b5cf6'] }],
+        },
+        options: { responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } } },
+    });
+}
+
+// ============================================================
+// 問い合わせ一覧
+// ============================================================
+function renderTicketList(area, actions) {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openTicketForm(null)">
+        <i class="bi bi-plus-lg me-1"></i>新規登録</button>`;
+
+    const f = state.filters;
+    const filteredSystems = f.customerId
+        ? db.systems.filter(s => s.customerId === parseInt(f.customerId) && s.active)
+        : db.systems.filter(s => s.active);
+
+    let tickets = db.tickets.filter(t => {
+        if (f.status     && t.status    !== f.status)             return false;
+        if (f.priority   && t.priority  !== f.priority)           return false;
+        if (f.type       && t.type      !== f.type)               return false;
+        if (f.customerId && t.customerId !== parseInt(f.customerId)) return false;
+        if (f.systemId   && t.systemId  !== parseInt(f.systemId)) return false;
+        if (f.keyword) {
+            const kw = f.keyword.toLowerCase();
+            if (!t.title.toLowerCase().includes(kw) && !t.description.toLowerCase().includes(kw)) return false;
+        }
+        return true;
+    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    area.innerHTML = `
+        <div class="filter-bar">
+            <select class="form-select form-select-sm" style="width:auto;" onchange="setFilter('status', this.value)">
+                <option value="">ステータス：全て</option>
+                ${['new','in_progress','waiting','done'].map(s =>
+                    `<option value="${s}" ${f.status===s?'selected':''}>${STATUS_LABELS[s]}</option>`).join('')}
+            </select>
+            <select class="form-select form-select-sm" style="width:auto;" onchange="setFilter('priority', this.value)">
+                <option value="">優先度：全て</option>
+                ${['high','medium','low'].map(p =>
+                    `<option value="${p}" ${f.priority===p?'selected':''}>${PRIORITY_LABELS[p]}</option>`).join('')}
+            </select>
+            <select class="form-select form-select-sm" style="width:auto;" onchange="setFilter('type', this.value)">
+                <option value="">種別：全て</option>
+                ${Object.entries(TYPE_LABELS).map(([v,l]) =>
+                    `<option value="${v}" ${f.type===v?'selected':''}>${l}</option>`).join('')}
+            </select>
+            <select class="form-select form-select-sm" style="width:auto;" onchange="setFilter('customerId', this.value); setFilter('systemId', '');">
+                <option value="">顧客企業：全て</option>
+                ${db.customers.filter(c=>c.active).map(c =>
+                    `<option value="${c.id}" ${f.customerId==c.id?'selected':''}>${c.name}</option>`).join('')}
+            </select>
+            <select class="form-select form-select-sm" style="width:auto;" onchange="setFilter('systemId', this.value)">
+                <option value="">システム：全て</option>
+                ${filteredSystems.map(s =>
+                    `<option value="${s.id}" ${f.systemId==s.id?'selected':''}>${s.name}</option>`).join('')}
+            </select>
+            <input type="text" class="form-control form-control-sm" style="width:190px;"
+                placeholder="キーワード検索..." value="${f.keyword}"
+                oninput="setFilter('keyword', this.value)">
+            <button class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">リセット</button>
+            <span class="ms-auto text-muted small">${tickets.length}件</span>
+        </div>
+
+        <div class="data-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>タイトル</th>
+                        <th>顧客企業</th>
+                        <th>システム</th>
+                        <th>種別</th>
+                        <th>優先度</th>
+                        <th>ステータス</th>
+                        <th>担当者</th>
+                        <th>受付日</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tickets.length === 0
+                        ? `<tr><td colspan="9" class="text-center text-muted py-4">該当する問い合わせがありません</td></tr>`
+                        : tickets.map(t => {
+                            const cust     = getCustomer(t.customerId);
+                            const sys      = getSystem(t.systemId);
+                            const assignee = t.assigneeId ? getUser(t.assigneeId) : null;
+                            return `<tr onclick="navigate('ticket-detail',{id:${t.id}})">
+                                <td class="text-muted">#${t.id}</td>
+                                <td class="fw-medium">${t.title}</td>
+                                <td>${cust ? cust.name : '-'}</td>
+                                <td>${sys  ? sys.name  : '-'}</td>
+                                <td><span class="badge bg-light text-dark border">${TYPE_LABELS[t.type]}</span></td>
+                                <td>${priorityBadge(t.priority)}</td>
+                                <td>${statusBadge(t.status)}</td>
+                                <td>${assignee ? assignee.name : '<span class="text-muted">未アサイン</span>'}</td>
+                                <td class="text-muted">${fmtDateShort(t.createdAt)}</td>
+                            </tr>`;
+                        }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function setFilter(key, value) {
+    state.filters[key] = value;
+    navigate('tickets');
+}
+
+function resetFilters() {
+    state.filters = { status: '', priority: '', type: '', customerId: '', systemId: '', keyword: '' };
+    navigate('tickets');
+}
+
+// ============================================================
+// 問い合わせ詳細
+// ============================================================
+function renderTicketDetail(area, actions, ticketId) {
+    const ticket = db.tickets.find(t => t.id === ticketId);
+    if (!ticket) { area.innerHTML = '<p class="text-danger">チケットが見つかりません</p>'; return; }
+
+    const cust       = getCustomer(ticket.customerId);
+    const sys        = getSystem(ticket.systemId);
+    const assignee   = ticket.assigneeId ? getUser(ticket.assigneeId) : null;
+    const poolUsers  = sys ? db.users.filter(u => sys.assigneeIds.includes(u.id) && u.active) : [];
+
+    const NEXT_STATUS = {
+        new:         [{ v: 'in_progress', l: '対応開始する' }],
+        in_progress: [{ v: 'waiting', l: '確認待ちへ' }, { v: 'done', l: '完了にする' }],
+        waiting:     [{ v: 'in_progress', l: '対応再開する' }, { v: 'done', l: '完了にする' }],
+        done:        [{ v: 'in_progress', l: '再オープン' }],
+    };
+
+    actions.innerHTML = `
+        <button class="btn btn-outline-secondary btn-sm me-2" onclick="navigate('tickets')">
+            <i class="bi bi-arrow-left"></i> 一覧へ
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openTicketForm(${ticket.id})">
+            <i class="bi bi-pencil"></i> 編集
+        </button>`;
+
+    area.innerHTML = `
+        <div class="row g-3">
+            <div class="col-md-8">
+                <!-- メイン情報 -->
+                <div class="form-card mb-3">
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">${ticket.title}</h5>
+                            <span class="text-muted small">#${ticket.id} &nbsp;·&nbsp; ${fmtDate(ticket.createdAt)}</span>
+                        </div>
+                        <div class="d-flex gap-2 ms-3 flex-shrink-0">
+                            ${priorityBadge(ticket.priority)} ${statusBadge(ticket.status)}
+                        </div>
+                    </div>
+                    <div class="form-section-title">詳細内容</div>
+                    <p class="mb-0" style="white-space:pre-wrap; color:#374151; font-size:0.9rem;">
+                        ${ticket.description || '<span class="text-muted">詳細なし</span>'}
+                    </p>
+
+                    <div class="form-section-title mt-4">ステータス変更</div>
+                    <div class="d-flex gap-2">
+                        ${(NEXT_STATUS[ticket.status] || []).map(s =>
+                            `<button class="btn btn-outline-primary btn-sm" onclick="changeStatus(${ticket.id},'${s.v}')">${s.l}</button>`
+                        ).join('')}
+                    </div>
+                </div>
+
+                <!-- コメント -->
+                <div class="form-card">
+                    <div class="form-section-title">対応履歴</div>
+                    <div id="comments-area">
+                        ${ticket.comments.length === 0
+                            ? '<p class="text-muted small">まだコメントはありません</p>'
+                            : ticket.comments.map(c => {
+                                const u = getUser(c.userId);
+                                return `<div class="comment-item">
+                                    <div class="comment-meta">
+                                        <strong>${u ? u.name : '不明'}</strong> &nbsp;·&nbsp; ${fmtDate(c.createdAt)}
+                                    </div>
+                                    <div style="white-space:pre-wrap; font-size:0.9rem;">${c.text}</div>
+                                </div>`;
+                            }).join('')}
+                    </div>
+                    <div class="mt-3">
+                        <textarea class="form-control mb-2" id="new-comment" rows="3"
+                            placeholder="対応内容・メモを追記..."></textarea>
+                        <button class="btn btn-primary btn-sm" onclick="addComment(${ticket.id})">
+                            <i class="bi bi-chat-left-text me-1"></i>コメント追加
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サイドバー情報 -->
+            <div class="col-md-4">
+                <div class="form-card">
+                    <div class="form-section-title">チケット情報</div>
+                    <dl class="row mb-0" style="font-size:0.875rem; row-gap:6px;">
+                        <dt class="col-5 text-muted fw-normal">顧客企業</dt>
+                        <dd class="col-7 mb-0">${cust ? cust.name : '-'}</dd>
+
+                        <dt class="col-5 text-muted fw-normal">システム</dt>
+                        <dd class="col-7 mb-0">${sys ? sys.name : '-'}</dd>
+
+                        <dt class="col-5 text-muted fw-normal">種別</dt>
+                        <dd class="col-7 mb-0"><span class="badge bg-light text-dark border">${TYPE_LABELS[ticket.type]}</span></dd>
+
+                        <dt class="col-5 text-muted fw-normal">優先度</dt>
+                        <dd class="col-7 mb-0">${priorityBadge(ticket.priority)}</dd>
+
+                        <dt class="col-5 text-muted fw-normal">ステータス</dt>
+                        <dd class="col-7 mb-0">${statusBadge(ticket.status)}</dd>
+
+                        <dt class="col-5 text-muted fw-normal pt-2">担当者</dt>
+                        <dd class="col-7 mb-0 pt-2">
+                            <select class="form-select form-select-sm"
+                                onchange="changeAssignee(${ticket.id}, this.value)">
+                                <option value="">未アサイン</option>
+                                ${poolUsers.map(u =>
+                                    `<option value="${u.id}" ${ticket.assigneeId===u.id?'selected':''}>${u.name}</option>`
+                                ).join('')}
+                            </select>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function changeStatus(ticketId, newStatus) {
+    const ticket = db.tickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+    ticket.status = newStatus;
+    saveDb();
+    navigate('ticket-detail', { id: ticketId });
+}
+
+function changeAssignee(ticketId, userId) {
+    const ticket = db.tickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+    ticket.assigneeId = userId ? parseInt(userId) : null;
+    saveDb();
+}
+
+function addComment(ticketId) {
+    const ticket = db.tickets.find(t => t.id === ticketId);
+    const text   = document.getElementById('new-comment').value.trim();
+    if (!ticket || !text) return;
+    ticket.comments.push({ userId: state.currentUser.id, text, createdAt: new Date().toISOString() });
+    saveDb();
+    navigate('ticket-detail', { id: ticketId });
+}
+
+// ============================================================
+// 問い合わせ登録・編集モーダル
+// ============================================================
+function openTicketForm(ticketId) {
+    state.editingTicketId = ticketId;
+    const t = ticketId ? db.tickets.find(x => x.id === ticketId) : null;
+    document.getElementById('ticketModalTitle').textContent = t ? '問い合わせ編集' : '問い合わせ登録';
+
+    const selCustId = t ? t.customerId : '';
+    const selSysId  = t ? t.systemId  : '';
+    const sysList   = selCustId
+        ? db.systems.filter(s => s.customerId === selCustId && s.active)
+        : db.systems.filter(s => s.active);
+    const sys       = selSysId ? getSystem(selSysId) : null;
+    const poolUsers = sys ? db.users.filter(u => sys.assigneeIds.includes(u.id) && u.active) : [];
+
+    document.getElementById('ticketModalBody').innerHTML = `
+        <div class="row g-3">
+            <div class="col-6">
+                <label class="form-label small fw-semibold">顧客企業 <span class="text-danger">*</span></label>
+                <select class="form-select" id="tf-customer" onchange="onTfCustomerChange()" required>
+                    <option value="">選択してください</option>
+                    ${db.customers.filter(c=>c.active).map(c =>
+                        `<option value="${c.id}" ${selCustId==c.id?'selected':''}>${c.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-6">
+                <label class="form-label small fw-semibold">システム <span class="text-danger">*</span></label>
+                <select class="form-select" id="tf-system" onchange="onTfSystemChange()" required>
+                    <option value="">選択してください</option>
+                    ${sysList.map(s =>
+                        `<option value="${s.id}" ${selSysId==s.id?'selected':''}>${s.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-6">
+                <label class="form-label small fw-semibold">種別 <span class="text-danger">*</span></label>
+                <select class="form-select" id="tf-type" onchange="onTfTypeChange()" required>
+                    <option value="">選択してください</option>
+                    ${Object.entries(TYPE_LABELS).map(([v,l]) =>
+                        `<option value="${v}" ${t?.type===v?'selected':''}>${l}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-6">
+                <label class="form-label small fw-semibold">優先度 <span class="text-danger">*</span></label>
+                <select class="form-select" id="tf-priority" required>
+                    ${['high','medium','low'].map(p =>
+                        `<option value="${p}" ${(t?.priority??'medium')===p?'selected':''}>${PRIORITY_LABELS[p]}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label small fw-semibold">タイトル <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="tf-title"
+                    value="${t ? t.title : ''}" placeholder="問い合わせの概要" required>
+            </div>
+            <div class="col-12">
+                <label class="form-label small fw-semibold">詳細内容</label>
+                <textarea class="form-control" id="tf-description" rows="4"
+                    placeholder="詳細・再現手順など...">${t ? t.description : ''}</textarea>
+            </div>
+            <div class="col-6">
+                <label class="form-label small fw-semibold">担当者</label>
+                <select class="form-select" id="tf-assignee">
+                    <option value="">未アサイン</option>
+                    ${poolUsers.map(u =>
+                        `<option value="${u.id}" ${t?.assigneeId===u.id?'selected':''}>${u.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-6">
+                <label class="form-label small fw-semibold">受付日時</label>
+                <input type="datetime-local" class="form-control" id="tf-createdat"
+                    value="${t ? t.createdAt.slice(0,16) : new Date().toISOString().slice(0,16)}">
+            </div>
+        </div>
+    `;
+
+    new bootstrap.Modal(document.getElementById('ticketModal')).show();
+}
+
+function onTfCustomerChange() {
+    const custId = parseInt(document.getElementById('tf-customer').value);
+    const sysSel = document.getElementById('tf-system');
+    const systems = db.systems.filter(s => s.customerId === custId && s.active);
+    sysSel.innerHTML = '<option value="">選択してください</option>' +
+        systems.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    document.getElementById('tf-assignee').innerHTML = '<option value="">未アサイン</option>';
+}
+
+function onTfSystemChange() {
+    const sysId  = parseInt(document.getElementById('tf-system').value);
+    const sys    = getSystem(sysId);
+    const asgSel = document.getElementById('tf-assignee');
+    if (sys) {
+        const users = db.users.filter(u => sys.assigneeIds.includes(u.id) && u.active);
+        asgSel.innerHTML = '<option value="">未アサイン</option>' +
+            users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+    } else {
+        asgSel.innerHTML = '<option value="">未アサイン</option>';
+    }
+}
+
+function onTfTypeChange() {
+    const type = document.getElementById('tf-type').value;
+    if (type && PRIORITY_DEFAULTS[type]) {
+        document.getElementById('tf-priority').value = PRIORITY_DEFAULTS[type];
+    }
+}
+
+function saveTicket() {
+    const custId      = parseInt(document.getElementById('tf-customer').value);
+    const sysId       = parseInt(document.getElementById('tf-system').value);
+    const type        = document.getElementById('tf-type').value;
+    const priority    = document.getElementById('tf-priority').value;
+    const title       = document.getElementById('tf-title').value.trim();
+    const description = document.getElementById('tf-description').value.trim();
+    const assigneeRaw = document.getElementById('tf-assignee').value;
+    const assigneeId  = assigneeRaw ? parseInt(assigneeRaw) : null;
+    const createdAt   = document.getElementById('tf-createdat').value + ':00';
+
+    if (!custId || !sysId || !type || !priority || !title) {
+        alert('必須項目をすべて入力してください');
+        return;
+    }
+
+    if (state.editingTicketId) {
+        const ticket = db.tickets.find(t => t.id === state.editingTicketId);
+        Object.assign(ticket, { customerId: custId, systemId: sysId, type, priority, title, description, assigneeId, createdAt });
+    } else {
+        db.tickets.push({
+            id: db.nextIds.ticket++,
+            customerId: custId, systemId: sysId, type, priority,
+            status: 'new', title, description, assigneeId, createdAt,
+            comments: [],
+        });
+    }
+
+    saveDb();
+    bootstrap.Modal.getInstance(document.getElementById('ticketModal')).hide();
+
+    if (state.currentView === 'ticket-detail' && state.editingTicketId) {
+        navigate('ticket-detail', { id: state.editingTicketId });
+    } else {
+        navigate('tickets');
+    }
+}
+
+// ============================================================
+// 顧客企業マスタ
+// ============================================================
+function renderCustomers(area, actions) {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openCustomerForm(null)">
+        <i class="bi bi-plus-lg me-1"></i>顧客企業追加</button>`;
+
+    area.innerHTML = `
+        <div class="data-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>顧客企業名</th>
+                        <th>システム数</th>
+                        <th>備考</th>
+                        <th>状態</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${db.customers.map(c => {
+                        const cnt = db.systems.filter(s => s.customerId === c.id).length;
+                        return `<tr>
+                            <td class="text-muted">${c.id}</td>
+                            <td class="fw-medium">${c.name}</td>
+                            <td>${cnt}本</td>
+                            <td class="text-muted">${c.note || '-'}</td>
+                            <td>${c.active
+                                ? '<span class="badge bg-success-subtle text-success">有効</span>'
+                                : '<span class="badge bg-secondary-subtle text-secondary">無効</span>'}</td>
+                            <td class="text-end">
+                                <button class="btn btn-outline-secondary btn-sm"
+                                    onclick="openCustomerForm(${c.id})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>`;
+}
+
+function openCustomerForm(customerId) {
+    state.editingCustomerId = customerId;
+    const c = customerId ? db.customers.find(x => x.id === customerId) : null;
+    document.getElementById('customerModalTitle').textContent = c ? '顧客企業編集' : '顧客企業追加';
+    document.getElementById('customerModalBody').innerHTML = `
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">顧客企業名 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="cm-name" value="${c ? c.name : ''}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">備考</label>
+            <input type="text" class="form-control" id="cm-note" value="${c ? c.note : ''}">
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="cm-active" ${!c || c.active ? 'checked' : ''}>
+            <label class="form-check-label small" for="cm-active">有効</label>
+        </div>`;
+    new bootstrap.Modal(document.getElementById('customerModal')).show();
+}
+
+function saveCustomer() {
+    const name   = document.getElementById('cm-name').value.trim();
+    const note   = document.getElementById('cm-note').value.trim();
+    const active = document.getElementById('cm-active').checked;
+    if (!name) { alert('顧客企業名を入力してください'); return; }
+
+    if (state.editingCustomerId) {
+        Object.assign(db.customers.find(c => c.id === state.editingCustomerId), { name, note, active });
+    } else {
+        db.customers.push({ id: db.nextIds.customer++, name, note, active });
+    }
+    saveDb();
+    bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
+    navigate('customers');
+}
+
+// ============================================================
+// システムマスタ
+// ============================================================
+function renderSystems(area, actions) {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openSystemForm(null)">
+        <i class="bi bi-plus-lg me-1"></i>システム追加</button>`;
+
+    area.innerHTML = `
+        <div class="data-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>システム名</th>
+                        <th>顧客企業</th>
+                        <th>説明</th>
+                        <th>担当者プール</th>
+                        <th>状態</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${db.systems.map(s => {
+                        const cust     = getCustomer(s.customerId);
+                        const assignees = db.users.filter(u => s.assigneeIds.includes(u.id));
+                        return `<tr>
+                            <td class="text-muted">${s.id}</td>
+                            <td class="fw-medium">${s.name}</td>
+                            <td>${cust ? cust.name : '-'}</td>
+                            <td class="text-muted">${s.description || '-'}</td>
+                            <td>${assignees.map(u =>
+                                `<span class="badge bg-light text-dark border me-1">${u.name}</span>`
+                            ).join('') || '<span class="text-muted">-</span>'}</td>
+                            <td>${s.active
+                                ? '<span class="badge bg-success-subtle text-success">有効</span>'
+                                : '<span class="badge bg-secondary-subtle text-secondary">無効</span>'}</td>
+                            <td class="text-end">
+                                <button class="btn btn-outline-secondary btn-sm"
+                                    onclick="openSystemForm(${s.id})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>`;
+}
+
+function openSystemForm(systemId) {
+    state.editingSystemId = systemId;
+    const s = systemId ? db.systems.find(x => x.id === systemId) : null;
+    document.getElementById('systemModalTitle').textContent = s ? 'システム編集' : 'システム追加';
+    document.getElementById('systemModalBody').innerHTML = `
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">顧客企業 <span class="text-danger">*</span></label>
+            <select class="form-select" id="sm-customer" ${s ? 'disabled' : ''}>
+                <option value="">選択してください</option>
+                ${db.customers.filter(c=>c.active).map(c =>
+                    `<option value="${c.id}" ${s?.customerId===c.id?'selected':''}>${c.name}</option>`).join('')}
+            </select>
+            ${s ? '<div class="form-text text-muted">顧客企業は変更できません</div>' : ''}
+        </div>
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">システム名 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="sm-name" value="${s ? s.name : ''}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">説明</label>
+            <input type="text" class="form-control" id="sm-description" value="${s ? s.description : ''}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">担当者プール（複数選択可）</label>
+            <select class="form-select" id="sm-assignees" multiple style="height:120px;">
+                ${db.users.filter(u=>u.active).map(u =>
+                    `<option value="${u.id}" ${s?.assigneeIds.includes(u.id)?'selected':''}>${u.name}</option>`).join('')}
+            </select>
+            <div class="form-text text-muted">Ctrl（Mac: ⌘）+クリックで複数選択</div>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="sm-active" ${!s || s.active ? 'checked' : ''}>
+            <label class="form-check-label small" for="sm-active">有効</label>
+        </div>`;
+    new bootstrap.Modal(document.getElementById('systemModal')).show();
+}
+
+function saveSystem() {
+    const custId = state.editingSystemId
+        ? db.systems.find(s => s.id === state.editingSystemId).customerId
+        : parseInt(document.getElementById('sm-customer').value);
+    const name        = document.getElementById('sm-name').value.trim();
+    const description = document.getElementById('sm-description').value.trim();
+    const active      = document.getElementById('sm-active').checked;
+    const assigneeIds = Array.from(document.getElementById('sm-assignees').selectedOptions)
+        .map(o => parseInt(o.value));
+
+    if (!custId || !name) { alert('必須項目を入力してください'); return; }
+
+    // 同一顧客企業内の重複チェック
+    const dup = db.systems.find(s =>
+        s.customerId === custId && s.name === name && s.id !== state.editingSystemId);
+    if (dup) { alert('同じ顧客企業内に同名のシステムが既に存在します'); return; }
+
+    if (state.editingSystemId) {
+        Object.assign(db.systems.find(s => s.id === state.editingSystemId),
+            { name, description, active, assigneeIds });
+    } else {
+        db.systems.push({ id: db.nextIds.system++, customerId: custId, name, description, active, assigneeIds });
+    }
+    saveDb();
+    bootstrap.Modal.getInstance(document.getElementById('systemModal')).hide();
+    navigate('systems');
+}
+
+// ============================================================
+// ユーザー管理（閲覧のみ）
+// ============================================================
+function renderUsers(area, actions) {
+    area.innerHTML = `
+        <div class="data-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>氏名</th>
+                        <th>メールアドレス</th>
+                        <th>ロール</th>
+                        <th>担当システム</th>
+                        <th>状態</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${db.users.map(u => {
+                        const sysList = db.systems.filter(s => s.assigneeIds.includes(u.id));
+                        return `<tr>
+                            <td class="text-muted">${u.id}</td>
+                            <td class="fw-medium">${u.name}</td>
+                            <td class="text-muted">${u.email}</td>
+                            <td>${u.role === 'admin'
+                                ? '<span class="badge bg-primary-subtle text-primary">管理者</span>'
+                                : '<span class="badge bg-secondary-subtle text-secondary">担当者</span>'}</td>
+                            <td>${sysList.map(s =>
+                                `<span class="badge bg-light text-dark border me-1">${s.name}</span>`
+                            ).join('') || '<span class="text-muted">-</span>'}</td>
+                            <td>${u.active
+                                ? '<span class="badge bg-success-subtle text-success">有効</span>'
+                                : '<span class="badge bg-secondary-subtle text-secondary">無効</span>'}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>`;
+}
+</script>
+</body>
+</html>
