@@ -530,6 +530,17 @@ paths:
           description: "追加取得するリレーション（カンマ区切り）。例: systems"
           schema:
             type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
       responses:
         "200":
           description: 成功
@@ -542,6 +553,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Customer"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -654,6 +667,17 @@ paths:
           description: "追加取得するリレーション（カンマ区切り）。例: assignees"
           schema:
             type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
       responses:
         "200":
           description: 成功
@@ -666,6 +690,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/System"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -833,6 +859,17 @@ paths:
           in: query
           schema:
             type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
       responses:
         "200":
           description: 成功
@@ -845,6 +882,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/User"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
