@@ -712,6 +712,7 @@ function renderSidebar() {
         <div class="sidebar-section mt-3">顧客・システム</div>
         ${customerNav}
 
+        ${state.currentUser.role === 'admin' ? `
         <div class="sidebar-section mt-3">マスタ管理</div>
         <a class="sidebar-item ${v === 'customers' ? 'active' : ''}" onclick="navigate('customers')">
             <i class="bi bi-building"></i> 顧客企業
@@ -721,7 +722,7 @@ function renderSidebar() {
         </a>
         <a class="sidebar-item ${v === 'users' ? 'active' : ''}" onclick="navigate('users')">
             <i class="bi bi-people"></i> ユーザー管理
-        </a>
+        </a>` : ''}
     `;
 }
 
@@ -1269,10 +1270,10 @@ function saveTicket() {
     saveDb();
     bootstrap.Modal.getInstance(document.getElementById('ticketModal')).hide();
 
-    if (state.currentView === 'ticket-detail' && state.editingTicketId) {
+    if (state.editingTicketId) {
         navigate('ticket-detail', { id: state.editingTicketId });
     } else {
-        navigate('tickets');
+        navigate('system-dashboard', { id: sysId });
     }
 }
 
