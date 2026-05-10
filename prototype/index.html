@@ -171,7 +171,7 @@
 
         /* ===== STATUS / PRIORITY BADGES ===== */
         .badge-status-new         { background-color: #dbeafe; color: #1d4ed8; font-weight: 500; }
-        .badge-status-in_progress { background-color: #fef3c7; color: #b45309; font-weight: 500; }
+        .badge-status-in_progress { background-color: #ffedd5; color: #c2410c; font-weight: 500; }
         .badge-status-waiting     { background-color: #ede9fe; color: #7c3aed; font-weight: 500; }
         .badge-status-done        { background-color: #dcfce7; color: #166534; font-weight: 500; }
 
@@ -408,7 +408,7 @@
             <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-person-circle fs-5"></i>
                 <div>
-                    <div id="sidebar-username" class="text-white" style="font-size:0.85rem;"></div>
+                    <div id="sidebar-username" class="text-white d-flex align-items-center gap-2" style="font-size:0.85rem;"></div>
                     <div style="font-size:0.75rem;">
                         <a href="#" onclick="doLogout()" style="color:#64748b;">ログアウト</a>
                     </div>
@@ -580,7 +580,10 @@ function doLogin() {
     state.currentUser = user;
     document.getElementById('login-view').style.display = 'none';
     document.getElementById('app-view').style.display = 'block';
-    document.getElementById('sidebar-username').textContent = user.name;
+    const roleBadge = user.role === 'admin'
+        ? `<span style="font-size:0.65rem; background:#00B7B5; color:white; border-radius:4px; padding:1px 6px; font-weight:600; flex-shrink:0;">管理者</span>`
+        : `<span style="font-size:0.65rem; background:rgba(255,255,255,0.2); color:rgba(255,255,255,0.8); border-radius:4px; padding:1px 6px; font-weight:600; flex-shrink:0;">担当者</span>`;
+    document.getElementById('sidebar-username').innerHTML = `${user.name}${roleBadge}`;
     navigate('dashboard');
 }
 
@@ -776,9 +779,9 @@ function renderDashboard(area, actions) {
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card" style="border-color:#f59e0b;" onclick="navigate('tickets'); setFilter('status','in_progress')">
+                <div class="stat-card" style="border-color:#ea580c;" onclick="navigate('tickets'); setFilter('status','in_progress')">
                     <div class="label"><i class="bi bi-arrow-clockwise"></i> 対応中</div>
-                    <div class="value" style="color:#f59e0b;">${counts.in_progress}</div>
+                    <div class="value" style="color:#ea580c;">${counts.in_progress}</div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -881,8 +884,7 @@ function renderDashboard(area, actions) {
 // 問い合わせ一覧
 // ============================================================
 function renderTicketList(area, actions) {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openTicketForm(null)">
-        <i class="bi bi-plus-lg me-1"></i>新規登録</button>`;
+    actions.innerHTML = '';
 
     const f = state.filters;
     const filteredSystems = f.customerId
@@ -1515,8 +1517,7 @@ function renderCustomerReport(area, actions, customerId) {
     const cust = getCustomer(customerId);
     if (!cust) { area.innerHTML = '<p class="text-danger">顧客企業が見つかりません</p>'; return; }
 
-    actions.innerHTML = `<button class="btn btn-outline-secondary btn-sm" onclick="history.back()">
-        <i class="bi bi-arrow-left"></i> 戻る</button>`;
+    actions.innerHTML = '';
 
     document.getElementById('page-title').textContent = cust.name + ' レポート';
 
@@ -1561,9 +1562,9 @@ function renderCustomerReport(area, actions, customerId) {
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card" style="border-color:#f59e0b;">
+                <div class="stat-card" style="border-color:#ea580c;">
                     <div class="label"><i class="bi bi-arrow-clockwise"></i> 対応中</div>
-                    <div class="value" style="color:#f59e0b;">${counts.in_progress}</div>
+                    <div class="value" style="color:#ea580c;">${counts.in_progress}</div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -1683,9 +1684,9 @@ function renderSystemDashboard(area, actions, systemId) {
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card" style="border-color:#f59e0b;">
+                <div class="stat-card" style="border-color:#ea580c;">
                     <div class="label"><i class="bi bi-arrow-clockwise"></i> 対応中</div>
-                    <div class="value" style="color:#f59e0b;">${counts.in_progress}</div>
+                    <div class="value" style="color:#ea580c;">${counts.in_progress}</div>
                 </div>
             </div>
             <div class="col-md-3">
