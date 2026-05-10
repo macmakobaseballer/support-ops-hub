@@ -275,6 +275,62 @@
             color: #64748b;
             margin-bottom: 14px;
         }
+
+        /* ===== CUSTOMER NAV ===== */
+        .customer-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            color: var(--sidebar-text);
+            cursor: pointer;
+            border-radius: 6px;
+            margin: 1px 8px;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .customer-header:hover { background: #334155; color: white; }
+
+        .customer-chevron {
+            font-size: 0.65rem;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .customer-header.expanded .customer-chevron {
+            transform: rotate(90deg);
+        }
+
+        .system-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px 6px 32px;
+            color: var(--sidebar-text);
+            cursor: pointer;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            margin: 1px 8px;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .system-nav-item:hover { background: #334155; color: #e2e8f0; }
+        .system-nav-item.active { background: #334155; color: white; }
+
+        .system-badge {
+            margin-left: auto;
+            background: #ef4444;
+            color: white;
+            border-radius: 10px;
+            padding: 1px 6px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            line-height: 1.4;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -314,24 +370,7 @@
             <i class="bi bi-headset" style="color:#3b82f6;"></i> Support Ops Hub
         </div>
 
-        <div class="sidebar-section">メイン</div>
-        <a class="sidebar-item" onclick="navigate('dashboard')" data-view="dashboard">
-            <i class="bi bi-speedometer2"></i> ダッシュボード
-        </a>
-        <a class="sidebar-item" onclick="navigate('tickets')" data-view="tickets">
-            <i class="bi bi-ticket-perforated"></i> 問い合わせ一覧
-        </a>
-
-        <div class="sidebar-section mt-2">マスタ管理</div>
-        <a class="sidebar-item" onclick="navigate('customers')" data-view="customers">
-            <i class="bi bi-building"></i> 顧客企業
-        </a>
-        <a class="sidebar-item" onclick="navigate('systems')" data-view="systems">
-            <i class="bi bi-server"></i> システム
-        </a>
-        <a class="sidebar-item" onclick="navigate('users')" data-view="users">
-            <i class="bi bi-people"></i> ユーザー管理
-        </a>
+        <div id="sidebar-nav"></div>
 
         <div class="sidebar-footer">
             <div class="d-flex align-items-center gap-2">
@@ -494,6 +533,7 @@ let state = {
     editingCustomerId: null,
     editingSystemId: null,
     filters: { status: '', priority: '', type: '', customerId: '', systemId: '', keyword: '' },
+    expandedCustomers: new Set(),
 };
 
 // ============================================================
@@ -534,10 +574,6 @@ function navigate(view, params = {}) {
     state.currentView = view;
     document.getElementById('page-title').textContent = VIEW_TITLES[view] || view;
 
-    document.querySelectorAll('.sidebar-item').forEach(el => {
-        el.classList.toggle('active', el.getAttribute('data-view') === view);
-    });
-
     const area    = document.getElementById('content-area');
     const actions = document.getElementById('page-actions');
     actions.innerHTML = '';
@@ -546,13 +582,15 @@ function navigate(view, params = {}) {
     Chart.helpers.each(Chart.instances, c => c.destroy());
 
     switch (view) {
-        case 'dashboard':      renderDashboard(area, actions);              break;
-        case 'tickets':        renderTicketList(area, actions);             break;
+        case 'dashboard':      renderDashboard(area, actions);               break;
+        case 'tickets':        renderTicketList(area, actions);              break;
         case 'ticket-detail':  renderTicketDetail(area, actions, params.id); break;
-        case 'customers':      renderCustomers(area, actions);              break;
-        case 'systems':        renderSystems(area, actions);                break;
-        case 'users':          renderUsers(area, actions);                  break;
+        case 'customers':      renderCustomers(area, actions);               break;
+        case 'systems':        renderSystems(area, actions);                 break;
+        case 'users':          renderUsers(area, actions);                   break;
     }
+
+    renderSidebar();
 }
 
 // ============================================================
@@ -583,6 +621,80 @@ function fmtDateShort(iso) {
 }
 
 function pad(n) { return String(n).padStart(2, '0'); }
+
+// ============================================================
+// サイドバー描画
+// ============================================================
+function renderSidebar() {
+    const v      = state.currentView;
+    const fSysId = parseInt(state.filters.systemId) || null;
+
+    const customerNav = db.customers.filter(c => c.active).map(c => {
+        const isExpanded  = state.expandedCustomers.has(c.id);
+        const systems     = db.systems.filter(s => s.customerId === c.id && s.active);
+        const openCount   = db.tickets.filter(t =>
+            systems.some(s => s.id === t.systemId) && t.status !== 'done').length;
+
+        const systemItems = isExpanded ? systems.map(s => {
+            const cnt      = db.tickets.filter(t => t.systemId === s.id && t.status !== 'done').length;
+            const isActive = v === 'tickets' && fSysId === s.id;
+            return `<a class="system-nav-item ${isActive ? 'active' : ''}" onclick="filterBySystem(${s.id})">
+                <i class="bi bi-circle-fill" style="font-size:0.3rem; opacity:0.35;"></i>
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${s.name}</span>
+                ${cnt > 0 ? `<span class="system-badge">${cnt}</span>` : ''}
+            </a>`;
+        }).join('') : '';
+
+        return `
+        <div>
+            <div class="customer-header ${isExpanded ? 'expanded' : ''}" onclick="toggleCustomer(${c.id})">
+                <i class="bi bi-chevron-right customer-chevron"></i>
+                <i class="bi bi-building" style="font-size:0.85rem;"></i>
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name}</span>
+                ${openCount > 0 ? `<span class="system-badge">${openCount}</span>` : ''}
+            </div>
+            ${systemItems}
+        </div>`;
+    }).join('');
+
+    document.getElementById('sidebar-nav').innerHTML = `
+        <div class="sidebar-section">メイン</div>
+        <a class="sidebar-item ${v === 'dashboard' ? 'active' : ''}" onclick="navigate('dashboard')">
+            <i class="bi bi-speedometer2"></i> ダッシュボード
+        </a>
+        <a class="sidebar-item ${v === 'tickets' && !fSysId ? 'active' : ''}" onclick="resetFilters()">
+            <i class="bi bi-ticket-perforated"></i> 問い合わせ一覧
+        </a>
+
+        <div class="sidebar-section mt-3">顧客企業</div>
+        ${customerNav}
+
+        <div class="sidebar-section mt-3">マスタ管理</div>
+        <a class="sidebar-item ${v === 'customers' ? 'active' : ''}" onclick="navigate('customers')">
+            <i class="bi bi-building"></i> 顧客企業
+        </a>
+        <a class="sidebar-item ${v === 'systems' ? 'active' : ''}" onclick="navigate('systems')">
+            <i class="bi bi-server"></i> システム
+        </a>
+        <a class="sidebar-item ${v === 'users' ? 'active' : ''}" onclick="navigate('users')">
+            <i class="bi bi-people"></i> ユーザー管理
+        </a>
+    `;
+}
+
+function toggleCustomer(customerId) {
+    if (state.expandedCustomers.has(customerId)) {
+        state.expandedCustomers.delete(customerId);
+    } else {
+        state.expandedCustomers.add(customerId);
+    }
+    renderSidebar();
+}
+
+function filterBySystem(systemId) {
+    state.filters = { status: '', priority: '', type: '', customerId: '', systemId: String(systemId), keyword: '' };
+    navigate('tickets');
+}
 
 // ============================================================
 // ダッシュボード
@@ -833,6 +945,8 @@ function resetFilters() {
     state.filters = { status: '', priority: '', type: '', customerId: '', systemId: '', keyword: '' };
     navigate('tickets');
 }
+
+
 
 // ============================================================
 // 問い合わせ詳細
