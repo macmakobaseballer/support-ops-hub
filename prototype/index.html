@@ -171,7 +171,7 @@
 
         /* ===== STATUS / PRIORITY BADGES ===== */
         .badge-status-new         { background-color: #dbeafe; color: #1d4ed8; font-weight: 500; }
-        .badge-status-in_progress { background-color: #ffedd5; color: #c2410c; font-weight: 500; }
+        .badge-status-in_progress { background-color: #e0e7ff; color: #4338ca; font-weight: 500; }
         .badge-status-waiting     { background-color: #ede9fe; color: #7c3aed; font-weight: 500; }
         .badge-status-done        { background-color: #dcfce7; color: #166534; font-weight: 500; }
 
@@ -779,9 +779,9 @@ function renderDashboard(area, actions) {
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card" style="border-color:#ea580c;" onclick="navigate('tickets'); setFilter('status','in_progress')">
+                <div class="stat-card" style="border-color:#4338ca;" onclick="navigate('tickets'); setFilter('status','in_progress')">
                     <div class="label"><i class="bi bi-arrow-clockwise"></i> 対応中</div>
-                    <div class="value" style="color:#ea580c;">${counts.in_progress}</div>
+                    <div class="value" style="color:#4338ca;">${counts.in_progress}</div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -1562,9 +1562,9 @@ function renderCustomerReport(area, actions, customerId) {
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card" style="border-color:#ea580c;">
+                <div class="stat-card" style="border-color:#4338ca;">
                     <div class="label"><i class="bi bi-arrow-clockwise"></i> 対応中</div>
-                    <div class="value" style="color:#ea580c;">${counts.in_progress}</div>
+                    <div class="value" style="color:#4338ca;">${counts.in_progress}</div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -1684,9 +1684,9 @@ function renderSystemDashboard(area, actions, systemId) {
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card" style="border-color:#ea580c;">
+                <div class="stat-card" style="border-color:#4338ca;">
                     <div class="label"><i class="bi bi-arrow-clockwise"></i> 対応中</div>
-                    <div class="value" style="color:#ea580c;">${counts.in_progress}</div>
+                    <div class="value" style="color:#4338ca;">${counts.in_progress}</div>
                 </div>
             </div>
             <div class="col-md-3">
