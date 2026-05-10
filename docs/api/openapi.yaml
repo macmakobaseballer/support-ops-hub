@@ -1,0 +1,1609 @@
+openapi: 3.1.0
+
+info:
+  title: Support Ops Hub API
+  version: 1.0.0
+  description: |
+    問い合わせ管理システム（Support Ops Hub）のRESTful API仕様。
+    フロントエンド（Nuxt.js）はAPIゲートウェイ経由でバックエンドマイクロサービスと通信する。
+
+    ## マイクロサービス構成
+
+    | サービス | 担当タグ | 内部ポート |
+    |---------|---------|-----------|
+    | auth-service | Auth | 8001 |
+    | ticket-service | Tickets, Comments, Attachments | 8002 |
+    | customer-service | Customers | 8003 |
+    | system-service | Systems | 8004 |
+    | user-service | Users | 8005 |
+    | analytics-service | Analytics | 8006 |
+
+    ## 認証
+
+    ログイン以外の全エンドポイントは `Authorization: Bearer <JWT>` ヘッダーが必要。
+    JWT は `POST /auth/login` で取得する。
+
+    ## エラーレスポンス形式
+
+    全サービスで統一の形式を使用する。
+
+    ```json
+    {
+      "code": "TICKET_NOT_FOUND",
+      "message": "指定されたチケットは存在しません",
+      "details": {}
+    }
+    ```
+
+servers:
+  - url: https://api.support-ops-hub.example.com/api/v1
+    description: Production
+  - url: https://api-stg.support-ops-hub.example.com/api/v1
+    description: Staging
+  - url: http://localhost:8000/api/v1
+    description: Local Development (API Gateway)
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Auth
+    description: 認証・セッション管理（auth-service）
+  - name: Tickets
+    description: チケット管理（ticket-service）
+  - name: Comments
+    description: チケットコメント（ticket-service）
+  - name: Attachments
+    description: 添付ファイル管理（ticket-service）
+  - name: Customers
+    description: 顧客企業マスタ管理（customer-service）
+  - name: Systems
+    description: システムマスタ管理（system-service）
+  - name: Users
+    description: ユーザー管理（user-service）
+  - name: Analytics
+    description: ダッシュボード・レポート集計（analytics-service）
+
+# ===========================================================================
+# Paths
+# ===========================================================================
+
+paths:
+
+  # ---------------------------------------------------------------------------
+  # Auth (auth-service)
+  # ---------------------------------------------------------------------------
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: ログイン
+      description: メールアドレスとパスワードで認証し、JWTを取得する（SCR-01）。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@example.com
+                password:
+                  type: string
+                  format: password
+                  example: password
+      responses:
+        "200":
+          description: 認証成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWTアクセストークン
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: ログアウト
+      description: セッションを無効化する。
+      responses:
+        "204":
+          description: ログアウト成功
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: ログインユーザー情報取得
+      description: 現在のJWTに紐づくユーザー情報を返す。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ---------------------------------------------------------------------------
+  # Tickets (ticket-service)
+  # ---------------------------------------------------------------------------
+
+  /tickets:
+    get:
+      tags: [Tickets]
+      summary: チケット一覧取得
+      description: |
+        フィルタ・キーワード検索でチケット一覧を取得する（SCR-03）。
+        デフォルトは受付日降順。
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/TicketStatus"
+        - name: priority
+          in: query
+          schema:
+            $ref: "#/components/schemas/TicketPriority"
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/TicketType"
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: system_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: keyword
+          in: query
+          description: タイトル・詳細内容の部分一致検索
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Ticket"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [Tickets]
+      summary: チケット新規登録
+      description: チケットを新規登録する（SCR-05）。登録者は JWTから自動設定。**admin・member 両ロール実行可能。**
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketCreate"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /tickets/{ticketId}:
+    parameters:
+      - $ref: "#/components/parameters/ticketId"
+
+    get:
+      tags: [Tickets]
+      summary: チケット詳細取得
+      description: 指定チケットの全情報を返す（SCR-04）。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags: [Tickets]
+      summary: チケット更新
+      description: チケット情報を全項目更新する（SCR-05 編集モーダル）。変更内容は ticket_history に自動記録される。**admin・member 両ロール実行可能。**
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketUpdate"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /tickets/{ticketId}/status:
+    parameters:
+      - $ref: "#/components/parameters/ticketId"
+
+    patch:
+      tags: [Tickets]
+      summary: ステータス変更
+      description: |
+        ステータスを指定値へ遷移させる（SCR-04 ステータス変更ボタン）。**admin・member 両ロール実行可能。**
+        遷移ルールに違反する場合は 422 を返す。
+        変更は ticket_history に自動記録される。
+
+        有効な遷移：
+        - new → in_progress
+        - in_progress → waiting | done
+        - waiting → in_progress | done
+        - done → 遷移不可（終端）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: "#/components/schemas/TicketStatus"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: ステータス遷移が許可されていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: INVALID_STATUS_TRANSITION
+                message: "new から done への遷移は許可されていません"
+
+  /tickets/{ticketId}/assignee:
+    parameters:
+      - $ref: "#/components/parameters/ticketId"
+
+    patch:
+      tags: [Tickets]
+      summary: 担当者変更
+      description: |
+        チケットの担当者を変更する（SCR-04 担当者セレクトボックス即時保存）。**admin・member 両ロール実行可能。**
+        assignee_id に null を指定すると未アサインになる。
+        変更は ticket_history に自動記録される。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assignee_id:
+                  type: ["integer", "null"]
+                  format: int64
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: 指定ユーザーはシステムの担当者プールに含まれていない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ---------------------------------------------------------------------------
+  # Comments (ticket-service)
+  # ---------------------------------------------------------------------------
+
+  /tickets/{ticketId}/comments:
+    parameters:
+      - $ref: "#/components/parameters/ticketId"
+
+    get:
+      tags: [Comments]
+      summary: コメント一覧取得
+      description: チケットに紐づくコメントを投稿日時昇順で返す（SCR-04 対応履歴）。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Comment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    post:
+      tags: [Comments]
+      summary: コメント追加
+      description: チケットにコメントを追加する（SCR-04 コメント追加ボタン）。投稿者は JWT から自動設定。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  minLength: 1
+                  example: "原因を調査しました。設定ファイルの誤りでした。"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Attachments (ticket-service)
+  # ---------------------------------------------------------------------------
+
+  /tickets/{ticketId}/attachments:
+    parameters:
+      - $ref: "#/components/parameters/ticketId"
+
+    get:
+      tags: [Attachments]
+      summary: 添付ファイル一覧取得
+      description: チケットに紐づく添付ファイルの一覧を返す。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Attachment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    post:
+      tags: [Attachments]
+      summary: ファイルアップロード
+      description: |
+        添付ファイルをアップロードする。
+        ファイル実体はS3に保存し、メタデータをDBに記録する。
+        最大ファイルサイズ: 10MB。
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: アップロード成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attachment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          description: ファイルサイズ超過（10MB制限）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tickets/{ticketId}/attachments/{attachmentId}:
+    parameters:
+      - $ref: "#/components/parameters/ticketId"
+      - name: attachmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+
+    delete:
+      tags: [Attachments]
+      summary: 添付ファイル削除
+      description: 添付ファイルのメタデータとS3オブジェクトを削除する。
+      responses:
+        "204":
+          description: 削除成功
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Customers (customer-service)
+  # ---------------------------------------------------------------------------
+
+  /customers:
+    get:
+      tags: [Customers]
+      summary: 顧客企業一覧取得
+      description: |
+        顧客企業の一覧を返す（SCR-08、サイドバー表示）。
+        `include=systems` を指定するとシステム一覧を含めて返す。
+      parameters:
+        - name: is_active
+          in: query
+          description: 有効フラグでフィルタ。省略時は全件返す
+          schema:
+            type: boolean
+        - name: include
+          in: query
+          description: "追加取得するリレーション（カンマ区切り）。例: systems"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Customer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [Customers]
+      summary: 顧客企業新規登録
+      description: 顧客企業を登録する（SCR-09）。管理者のみ実行可能。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerCreate"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: 顧客企業名が重複
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: CUSTOMER_NAME_CONFLICT
+                message: "この顧客企業名は既に存在します"
+
+  /customers/{customerId}:
+    parameters:
+      - $ref: "#/components/parameters/customerId"
+
+    get:
+      tags: [Customers]
+      summary: 顧客企業詳細取得
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags: [Customers]
+      summary: 顧客企業更新
+      description: 顧客企業情報を更新する（SCR-09 編集）。管理者のみ実行可能。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerUpdate"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: 顧客企業名が重複
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ---------------------------------------------------------------------------
+  # Systems (system-service)
+  # ---------------------------------------------------------------------------
+
+  /systems:
+    get:
+      tags: [Systems]
+      summary: システム一覧取得
+      description: システムの一覧を返す（SCR-10、チケット登録フォーム選択肢）。
+      parameters:
+        - name: customer_id
+          in: query
+          description: 顧客企業IDで絞り込み（チケット登録フォームの連動絞り込み用）
+          schema:
+            type: integer
+            format: int64
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+        - name: include
+          in: query
+          description: "追加取得するリレーション（カンマ区切り）。例: assignees"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/System"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [Systems]
+      summary: システム新規登録
+      description: システムを登録する（SCR-11）。管理者のみ実行可能。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SystemCreate"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/System"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: 同一顧客内でシステム名が重複
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: SYSTEM_NAME_CONFLICT
+                message: "同じ顧客企業内に同名のシステムが既に存在します"
+
+  /systems/{systemId}:
+    parameters:
+      - $ref: "#/components/parameters/systemId"
+
+    get:
+      tags: [Systems]
+      summary: システム詳細取得
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/System"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags: [Systems]
+      summary: システム更新
+      description: |
+        システム情報を更新する（SCR-11 編集）。管理者のみ実行可能。
+        `customer_id` は変更不可（スキーマに含めても無視される）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SystemUpdate"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/System"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: システム名が重複
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /systems/{systemId}/assignees:
+    parameters:
+      - $ref: "#/components/parameters/systemId"
+
+    get:
+      tags: [Systems]
+      summary: 担当者プール取得
+      description: システムに紐づく担当者プールのユーザー一覧を返す（チケット担当者選択肢）。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags: [Systems]
+      summary: 担当者プール更新
+      description: 担当者プールを全置換する（SCR-11 担当者プール複数選択）。管理者のみ実行可能。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_ids]
+              properties:
+                user_ids:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                  description: 担当者プールに設定するユーザーIDの全件リスト
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Users (user-service)
+  # ---------------------------------------------------------------------------
+
+  /users:
+    get:
+      tags: [Users]
+      summary: ユーザー一覧取得
+      description: |
+        ユーザー一覧を返す（SCR-12）。管理者のみ実行可能。
+        チケット登録フォームの担当者選択は `GET /systems/{id}/assignees` を使用すること。
+      parameters:
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+
+    get:
+      tags: [Users]
+      summary: ユーザー詳細取得
+      description: 管理者のみ実行可能。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Analytics (analytics-service)
+  # ---------------------------------------------------------------------------
+
+  /analytics/dashboard:
+    get:
+      tags: [Analytics]
+      summary: 全体ダッシュボード集計
+      description: |
+        SCR-02 ダッシュボードに必要な全集計データを返す。
+        - ステータス別件数（新規受付・対応中・確認待ち・完了）
+        - 過去6ヶ月の月次件数推移
+        - 未完了チケットの種別内訳
+        - システム別未完了件数（上位6件）
+        - 優先度別未完了件数
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /analytics/customers/{customerId}/report:
+    parameters:
+      - $ref: "#/components/parameters/customerId"
+
+    get:
+      tags: [Analytics]
+      summary: 顧客レポート集計
+      description: |
+        SCR-06 顧客レポートに必要な集計データを返す。
+        対象顧客企業のチケットのみを集計する。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerReport"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /analytics/systems/{systemId}/dashboard:
+    parameters:
+      - $ref: "#/components/parameters/systemId"
+
+    get:
+      tags: [Analytics]
+      summary: システムダッシュボード集計
+      description: |
+        SCR-07 システムダッシュボードのステータスカード集計データを返す。
+        チケット一覧は `GET /tickets?system_id={id}` で別途取得する。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemDashboard"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /analytics/sidebar:
+    get:
+      tags: [Analytics]
+      summary: サイドバー用データ取得
+      description: |
+        サイドバー描画に必要なデータを1リクエストで返す。
+        - `is_active=true` の顧客企業のみを返す（サーバー側でフィルタ済み）
+        - 各顧客企業配下も `is_active=true` のシステムのみを返す（サーバー側でフィルタ済み）
+        - 各システムの未完了チケット件数（`new` / `in_progress` / `waiting` の合計）
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SidebarData"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+# ===========================================================================
+# Components
+# ===========================================================================
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ticketId:
+      name: ticketId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    customerId:
+      name: customerId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    systemId:
+      name: systemId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  responses:
+    BadRequest:
+      description: リクエストパラメータが不正
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: 認証が必要（JWTが無効または期限切れ）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: UNAUTHORIZED
+            message: "認証が必要です"
+    Forbidden:
+      description: 権限不足（管理者ロールが必要）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: FORBIDDEN
+            message: "この操作には管理者権限が必要です"
+    NotFound:
+      description: リソースが存在しない
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: NOT_FOUND
+            message: "指定されたリソースは存在しません"
+    UnprocessableEntity:
+      description: バリデーションエラー
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+
+    # -------------------------------------------------------------------------
+    # Common
+    # -------------------------------------------------------------------------
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: エラーコード（スネークケースの大文字）
+          example: TICKET_NOT_FOUND
+        message:
+          type: string
+          description: ユーザー向けエラーメッセージ（日本語）
+        details:
+          type: object
+          description: フィールドごとのバリデーションエラー詳細
+          additionalProperties: true
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: 総件数
+        page:
+          type: integer
+          description: 現在ページ
+        per_page:
+          type: integer
+          description: 1ページあたりの件数
+        total_pages:
+          type: integer
+          description: 総ページ数
+
+    # -------------------------------------------------------------------------
+    # Enums
+    # -------------------------------------------------------------------------
+
+    TicketStatus:
+      type: string
+      enum: [new, in_progress, waiting, done]
+      description: |
+        - new: 新規受付
+        - in_progress: 対応中
+        - waiting: 確認待ち
+        - done: 完了
+
+    TicketPriority:
+      type: string
+      enum: [high, medium, low]
+      description: |
+        - high: 高
+        - medium: 中
+        - low: 低
+
+    TicketType:
+      type: string
+      enum: [question, bug, config, data]
+      description: |
+        - question: 操作方法の質問
+        - bug: バグ報告
+        - config: 設定変更依頼
+        - data: データ修正依頼
+
+    UserRole:
+      type: string
+      enum: [admin, member]
+      description: |
+        - admin: 管理者（全機能アクセス可）
+        - member: メンバー（チケット操作・閲覧のみ）
+
+    # -------------------------------------------------------------------------
+    # User
+    # -------------------------------------------------------------------------
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: 山田太郎
+        email:
+          type: string
+          format: email
+          example: yamada@example.com
+        role:
+          $ref: "#/components/schemas/UserRole"
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserSummary:
+      type: object
+      description: 選択肢表示用の軽量ユーザー情報
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+
+    # -------------------------------------------------------------------------
+    # Customer
+    # -------------------------------------------------------------------------
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: 株式会社サンプル
+        notes:
+          type: ["string", "null"]
+        is_active:
+          type: boolean
+        system_count:
+          type: integer
+          description: "紐づくシステム総数（有効・無効含む）。DBカラムではなく SELECT COUNT(*) で動的に計算される。"
+        systems:
+          type: array
+          description: include=systems 指定時のみ返す
+          items:
+            $ref: "#/components/schemas/SystemSummary"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CustomerCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        notes:
+          type: ["string", "null"]
+        is_active:
+          type: boolean
+          default: true
+
+    CustomerUpdate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        notes:
+          type: ["string", "null"]
+        is_active:
+          type: boolean
+
+    # -------------------------------------------------------------------------
+    # System
+    # -------------------------------------------------------------------------
+
+    System:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: 基幹システム
+        customer_id:
+          type: integer
+          format: int64
+        customer_name:
+          type: string
+        description:
+          type: ["string", "null"]
+        is_active:
+          type: boolean
+        assignees:
+          type: array
+          description: "`GET /systems?include=assignees` または `GET /systems/{id}` の場合のみ返す。省略時は空配列。"
+          items:
+            $ref: "#/components/schemas/UserSummary"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SystemSummary:
+      type: object
+      description: サイドバー・選択肢表示用の軽量システム情報
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        is_active:
+          type: boolean
+
+    SystemCreate:
+      type: object
+      required: [customer_id, name]
+      properties:
+        customer_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: ["string", "null"]
+        assignee_user_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+        is_active:
+          type: boolean
+          default: true
+
+    SystemUpdate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: ["string", "null"]
+        assignee_user_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+        is_active:
+          type: boolean
+
+    # -------------------------------------------------------------------------
+    # Ticket
+    # -------------------------------------------------------------------------
+
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+          example: ログイン後に画面が表示されない
+        description:
+          type: ["string", "null"]
+        type:
+          $ref: "#/components/schemas/TicketType"
+        priority:
+          $ref: "#/components/schemas/TicketPriority"
+        status:
+          $ref: "#/components/schemas/TicketStatus"
+        customer_id:
+          type: integer
+          format: int64
+        customer_name:
+          type: string
+        system_id:
+          type: integer
+          format: int64
+        system_name:
+          type: string
+        assignee_id:
+          type: ["integer", "null"]
+          format: int64
+        assignee_name:
+          type: ["string", "null"]
+        created_by:
+          type: integer
+          format: int64
+        created_by_name:
+          type: string
+        received_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TicketCreate:
+      type: object
+      required: [customer_id, system_id, type, priority, title]
+      properties:
+        customer_id:
+          type: integer
+          format: int64
+        system_id:
+          type: integer
+          format: int64
+        type:
+          $ref: "#/components/schemas/TicketType"
+        priority:
+          description: "フロントエンドが種別選択時に自動セット（手動変更可）してから送信する。バックエンドは受け取った値をそのまま保存する（自動補完しない）。"
+          $ref: "#/components/schemas/TicketPriority"
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: ["string", "null"]
+        assignee_id:
+          type: ["integer", "null"]
+          format: int64
+        received_at:
+          type: string
+          format: date-time
+          description: 省略時はサーバー現在日時
+      description: |
+        登録時の初期ステータスは常に `new`（新規受付）。
+        リクエストで status を指定することはできない。
+
+    TicketUpdate:
+      type: object
+      required: [type, priority, title]
+      properties:
+        type:
+          $ref: "#/components/schemas/TicketType"
+        priority:
+          $ref: "#/components/schemas/TicketPriority"
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: ["string", "null"]
+        assignee_id:
+          type: ["integer", "null"]
+          format: int64
+        received_at:
+          type: string
+          format: date-time
+
+    # -------------------------------------------------------------------------
+    # Comment
+    # -------------------------------------------------------------------------
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        ticket_id:
+          type: integer
+          format: int64
+        author_id:
+          type: integer
+          format: int64
+        author_name:
+          type: string
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    # -------------------------------------------------------------------------
+    # Attachment
+    # -------------------------------------------------------------------------
+
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        ticket_id:
+          type: integer
+          format: int64
+        uploaded_by:
+          type: integer
+          format: int64
+        uploaded_by_name:
+          type: string
+        file_name:
+          type: string
+        file_size:
+          type: integer
+          description: ファイルサイズ（バイト）
+        content_type:
+          type: string
+          example: image/png
+        download_url:
+          type: string
+          description: "署名付きS3 URL（有効期限: 15分）"
+        created_at:
+          type: string
+          format: date-time
+
+    # -------------------------------------------------------------------------
+    # Analytics
+    # -------------------------------------------------------------------------
+
+    StatusCounts:
+      type: object
+      properties:
+        new:
+          type: integer
+        in_progress:
+          type: integer
+        waiting:
+          type: integer
+        done:
+          type: integer
+
+    MonthlyTrendItem:
+      type: object
+      properties:
+        month:
+          type: string
+          description: "YYYY-MM 形式"
+          example: "2026-04"
+        count:
+          type: integer
+
+    TypeCounts:
+      type: object
+      properties:
+        question:
+          type: integer
+        bug:
+          type: integer
+        config:
+          type: integer
+        data:
+          type: integer
+
+    PriorityCounts:
+      type: object
+      properties:
+        high:
+          type: integer
+        medium:
+          type: integer
+        low:
+          type: integer
+
+    DashboardSummary:
+      type: object
+      properties:
+        counts_by_status:
+          $ref: "#/components/schemas/StatusCounts"
+        monthly_trend:
+          type: array
+          description: "過去6ヶ月の月次件数・当月含む（古い順）。集計基準は received_at"
+          items:
+            $ref: "#/components/schemas/MonthlyTrendItem"
+        open_counts_by_type:
+          $ref: "#/components/schemas/TypeCounts"
+          description: 未完了チケットの種別内訳
+        open_counts_by_priority:
+          $ref: "#/components/schemas/PriorityCounts"
+          description: 未完了チケットの優先度別件数
+        top_systems_by_open_count:
+          type: array
+          description: 未完了件数上位6システム
+          items:
+            type: object
+            properties:
+              system_id:
+                type: integer
+                format: int64
+              system_name:
+                type: string
+              count:
+                type: integer
+
+    CustomerReport:
+      type: object
+      properties:
+        customer_id:
+          type: integer
+          format: int64
+        customer_name:
+          type: string
+        counts_by_status:
+          $ref: "#/components/schemas/StatusCounts"
+        monthly_trend:
+          type: array
+          description: "過去6ヶ月の月次件数・当月含む（古い順）。集計基準は received_at"
+          items:
+            $ref: "#/components/schemas/MonthlyTrendItem"
+        open_counts_by_type:
+          $ref: "#/components/schemas/TypeCounts"
+        system_breakdown:
+          type: array
+          description: システム別ステータス件数
+          items:
+            type: object
+            properties:
+              system_id:
+                type: integer
+                format: int64
+              system_name:
+                type: string
+              counts:
+                $ref: "#/components/schemas/StatusCounts"
+              total:
+                type: integer
+
+    SystemDashboard:
+      type: object
+      properties:
+        system_id:
+          type: integer
+          format: int64
+        system_name:
+          type: string
+        customer_id:
+          type: integer
+          format: int64
+        customer_name:
+          type: string
+        counts_by_status:
+          $ref: "#/components/schemas/StatusCounts"
+
+    SidebarData:
+      type: object
+      properties:
+        customers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              name:
+                type: string
+              systems:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                    name:
+                      type: string
+                    open_ticket_count:
+                      type: integer
+                      description: "未完了チケット件数（status が new / in_progress / waiting の合計）"
