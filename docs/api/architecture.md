@@ -91,7 +91,7 @@ MVP はモノリスとして実装しながらも、**内部をサービスモ�
 new → in_progress
 in_progress → waiting | done
 waiting → in_progress | done
-done → in_progress（再オープン）
+done → （なし。終端ステータス）
 ```
 
 **他サービスへの依存注意点：**
