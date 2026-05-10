@@ -632,9 +632,6 @@ function renderSidebar() {
     const customerNav = db.customers.filter(c => c.active).map(c => {
         const isExpanded  = state.expandedCustomers.has(c.id);
         const systems     = db.systems.filter(s => s.customerId === c.id && s.active);
-        const openCount   = db.tickets.filter(t =>
-            systems.some(s => s.id === t.systemId) && t.status !== 'done').length;
-
         const systemItems = isExpanded ? systems.map(s => {
             const cnt      = db.tickets.filter(t => t.systemId === s.id && t.status !== 'done').length;
             const isActive = v === 'tickets' && fSysId === s.id;
@@ -651,7 +648,6 @@ function renderSidebar() {
                 <i class="bi bi-chevron-right customer-chevron"></i>
                 <i class="bi bi-building" style="font-size:0.85rem;"></i>
                 <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name}</span>
-                ${openCount > 0 ? `<span class="system-badge">${openCount}</span>` : ''}
             </div>
             ${systemItems}
         </div>`;
