@@ -1,70 +1,84 @@
 # Support Ops Hub — CLAUDE.md
 
-AIエージェントがこのプロジェクトで作業する際のアーキテクチャルールと規約。
-**これらのルールは提案ではなくハードコンストレイントである。** 逸脱する前に必ずユーザーに確認すること。
+AI エージェントがこのプロジェクトで作業する際のルートルール。**詳細ルールは各領域の `CLAUDE.md` に分割している。** 該当領域で作業する際は、必ずそのディレクトリの `CLAUDE.md` を読むこと。
 
 ---
 
 ## プロジェクト概要
 
 問い合わせ管理システム（Support Ops Hub）。
-運用・保守チームが顧客からの問い合わせを一元管理するWebアプリケーション。
+運用・保守チームが顧客からの問い合わせを一元管理する Web アプリケーション。
 
 | 項目 | 内容 |
 |------|------|
-| フロントエンド | Nuxt.js |
-| バックエンド | Go |
+| フロントエンド | Nuxt 3 + TypeScript + Pinia + Tailwind |
+| バックエンド | Go（モジュラーモノリス） |
 | データベース | MySQL 8.0（AWS RDS） |
-| インフラ | AWS（ECS Fargate / S3 / CloudFront） |
-| API仕様 | [docs/api/openapi.yaml](docs/api/openapi.yaml) |
+| インフラ | AWS（ECS on EC2 / RDS MySQL 8.0 / S3 / CloudFront、Redis 不使用）、Terraform |
+| CI | GitHub Actions |
+| 要件定義 | [docs/requirements/要件定義書.md](docs/requirements/要件定義書.md) |
+| API 仕様 | [docs/api/openapi.yaml](docs/api/openapi.yaml) |
 | アーキテクチャ設計 | [docs/api/architecture.md](docs/api/architecture.md) |
+| 画面仕様 | [docs/screens/画面仕様書.md](docs/screens/画面仕様書.md) |
+| 画面遷移 | [docs/screens/画面遷移図.md](docs/screens/画面遷移図.md) |
+| データ定義 | [docs/data/データ定義.md](docs/data/データ定義.md) |
+| ER 図 | [docs/data/ER図.md](docs/data/ER図.md) |
+| テーブル定義書 | [docs/data/テーブル定義書.md](docs/data/テーブル定義書.md) |
 
 ---
 
-## マイクロサービス アーキテクチャルール
+## ルールドキュメント索引
 
-### ルール1：サービス境界を越えたDB直接アクセス禁止
+| 領域 | ルールドキュメント | 主な内容 |
+|------|----------------|---------|
+| バックエンド | [backend/CLAUDE.md](backend/CLAUDE.md) | マイクロサービス・アーキテクチャルール（ルール1〜8） / API 設計規約 / Go コード規約 / 実装上の注意事項 |
+| フロントエンド | [frontend/CLAUDE.md](frontend/CLAUDE.md) | Nuxt 3 + Pinia 構成 / 画面と SCR の対応 / API クライアント集約 / 状態管理 |
+| インフラ | [infra/CLAUDE.md](infra/CLAUDE.md) | Terraform モジュール構成 / 環境分離 / 命名・タグ規約 / シークレット管理 |
+| CI | [.github/CLAUDE.md](.github/CLAUDE.md) | ワークフロー構成 / paths フィルタ / OIDC・Secrets 管理 |
+| API ユニットテスト | [docs/testing/api-unit-test.md](docs/testing/api-unit-test.md) | Go バックエンドのテスト規約 |
+| フロント ユニットテスト | [docs/testing/frontend-unit-test.md](docs/testing/frontend-unit-test.md) | Nuxt フロントのテスト規約 |
+| E2E テスト | 未策定 | 後続マイルストーンで策定 |
 
-```
-❌ ticket-service が customers テーブルに直接 JOIN する
-✅ ticket-service が customer-service API を呼び出す（Phase 2 以降）
-✅ MVP(Phase 1) では同一プロセス内のモジュール関数を呼び出す
-```
+Claude Code はディレクトリ配下の `CLAUDE.md` を自動でロードするが、ルートで作業する場合や他領域に影響する変更を行う場合は、関連する `CLAUDE.md` を明示的に参照すること。
 
-サービスが管理するテーブル：
+---
 
-| サービス | 所有テーブル |
-|---------|------------|
-| auth-service | users（読み取りのみ） |
-| ticket-service | tickets, comments, ticket_history, attachments |
-| customer-service | customers |
-| system-service | systems, system_assignees |
-| user-service | users |
-| analytics-service | 全テーブル読み取り専用（Phase 1 限定） |
+## 横断ルール
 
-### ルール2：API Gatewayに業務ロジックを持たせない
+以下はどの領域で作業する場合も適用する。
 
-API Gateway が担うのは以下のみ：
-- JWT検証と `X-User-ID` / `X-User-Role` ヘッダー付与
-- パスプレフィックスによるルーティング
-- レートリミット / CORS / リクエストログ
+### 横断ルール1：ドキュメント駆動
 
-ビジネスロジック（ステータス遷移ルール、権限チェックの詳細など）は必ず担当サービスに実装する。
+仕様変更は **必ずドキュメントを先に更新**してからコードを書く。ドキュメントとコードの乖離はバグ扱い。
 
-### ルール3：APIバージョニング必須
+| 変更内容 | 先に更新するドキュメント |
+|---------|-------------------|
+| エンドポイントの追加・変更 | [docs/api/openapi.yaml](docs/api/openapi.yaml) |
+| 画面の追加・変更 | [docs/screens/画面仕様書.md](docs/screens/画面仕様書.md) |
+| データ構造の変更 | [docs/data/データ定義.md](docs/data/データ定義.md) / [docs/data/ER図.md](docs/data/ER図.md) / [docs/data/テーブル定義書.md](docs/data/テーブル定義書.md) |
+| サービス境界の変更 | [docs/api/architecture.md](docs/api/architecture.md) |
 
-全エンドポイントは `/api/v1/` プレフィックスで始める。
-後方互換性を破る変更は `/api/v2/` を新設し、`/api/v1/` を一定期間並行運用する。
+### 横断ルール2：OpenAPI 変更時の波及
 
-```
-✅ POST /api/v1/tickets
-❌ POST /tickets
-❌ POST /api/tickets
-```
+[docs/api/openapi.yaml](docs/api/openapi.yaml) を更新したら、以下も連動して更新する：
 
-### ルール4：エラーレスポンス統一形式
+- backend：oapi-codegen で `internal/apigen/` を再生成し、コミット
+- frontend：`pnpm openapi:types` で `types/api.d.ts` を再生成（gitignore のため CI で自動生成）
+- backend / frontend 双方のテストが新スキーマで通ることを確認
 
-全サービスで以下の形式を厳守する：
+### 横断ルール3：新サービス追加手順
+
+新しいバックエンドサービスを追加する場合、以下を **すべて** 更新する：
+
+1. [docs/api/architecture.md](docs/api/architecture.md) のサービスマップ
+2. [docs/api/openapi.yaml](docs/api/openapi.yaml) に新タグを追加
+3. [backend/CLAUDE.md](backend/CLAUDE.md) の「所有テーブル」表
+4. [backend/](backend/) 配下に `cmd/<service>/main.go` を作成
+5. Phase 1：既存の単一バイナリ・ECS タスクに新サービスのモジュールをリンクする（[backend/CLAUDE.md](backend/CLAUDE.md) 構成参照）。Phase 2 で ECS タスクを分離する場合は [infra/terraform/envs/*/main.tf](infra/terraform/envs/) で配線
+
+### 横断ルール4：エラー形式の整合
+
+バックエンドが返すエラーレスポンスとフロントエンドの解釈を一致させる：
 
 ```json
 {
@@ -74,167 +88,25 @@ API Gateway が担うのは以下のみ：
 }
 ```
 
-- `code`：SCREAMING_SNAKE_CASE。サービス名プレフィックスを付けることを推奨（例: `TICKET_NOT_FOUND`, `SYSTEM_NAME_CONFLICT`）
-- `message`：日本語のユーザー向けメッセージ
-- `details`：フィールドバリデーションエラーの詳細（省略可）
+- `code` は SCREAMING_SNAKE_CASE
+- `message` は日本語ユーザー向けメッセージ
+- 詳細は [backend/CLAUDE.md](backend/CLAUDE.md) ルール4 と [frontend/CLAUDE.md](frontend/CLAUDE.md) ルール F3
 
-### ルール5：ステータス遷移はticket-serviceが強制する
+### 横断ルール5：ハードコンストレイント逸脱は事前確認
 
-有効な遷移：
-
-```
-new → in_progress
-in_progress → waiting | done
-waiting → in_progress | done
-done → （なし。終端ステータス）
-```
-
-これ以外の遷移は HTTP 422 + `code: INVALID_STATUS_TRANSITION` を返す。
-フロントエンド側の表示制御（ボタンの出し分け）とは独立して、**バックエンドで必ず検証する**。
-
-### ルール6：権限チェックの実装方針
-
-- `admin` ロールが必要なエンドポイントは、サービス内で `X-User-Role` ヘッダーを検証する
-- JWT はAPI Gatewayで検証済みのため、内部サービスは署名検証不要
-- 権限不足は HTTP 403 を返す
-
-管理者専用エンドポイント：
-- `POST /customers`, `PUT /customers/{id}`
-- `POST /systems`, `PUT /systems/{id}`
-- `PUT /systems/{id}/assignees`
-- `GET /users`, `GET /users/{id}`
-
-### ルール7：論理削除を原則とする
-
-顧客企業・システム・ユーザーは物理削除せず `is_active = false` で論理削除する。
-これはサービス分離後のFK制約廃止に備えた設計である。
-
-### ルール8：`customer_id` はシステム登録後変更不可
-
-`systems.customer_id` は登録後に変更できない（画面仕様 SCR-11 より）。
-変更を試みるリクエストは HTTP 422 を返し、DB更新を行わない。
+各領域の `CLAUDE.md` に書かれたルールは **提案ではなくハードコンストレイント**。逸脱する場合は、コードを書く前に必ずユーザーに確認すること。
 
 ---
 
-## API 設計規約
+## 開発の進め方
 
-### エンドポイント命名
+実装は段階的に進める。マイルストーンと現在の進捗は [README.md](README.md) と各領域の `README.md` を参照。
 
-- リソース名は複数形の名詞：`/tickets`, `/customers`, `/systems`
-- アクション（動詞）は HTTP メソッドで表現する
-- サブリソースはネストで表現：`/tickets/{id}/comments`
-- 特定のフィールド更新は PATCH + サブパス：`PATCH /tickets/{id}/status`
+ローカル開発の起動は [Makefile](Makefile) のターゲットを使う：
 
-### フィルタ・ページネーション
-
-ページネーションの適用対象はエンドポイントの種類によって異なる。
-
-#### 検索系一覧 API（必須）
-
-独立したリソースの一覧取得エンドポイント。`page`/`per_page` クエリパラメータとレスポンスの `pagination` オブジェクトが必須。
-
-対象：`GET /tickets`, `GET /customers`, `GET /systems`, `GET /users`
-
-| パラメータ | 型 | 説明 |
-|-----------|-----|------|
-| page | integer | ページ番号（1始まり） |
-| per_page | integer | 件数（デフォルト50、最大200） |
-
-レスポンスには必ず `pagination` オブジェクトを含める：
-
-```json
-{
-  "data": [...],
-  "pagination": {
-    "total": 150,
-    "page": 1,
-    "per_page": 50,
-    "total_pages": 3
-  }
-}
+```bash
+make up                # MySQL / LocalStack を起動
+make backend-build     # backend をビルド
+make front-dev         # frontend を起動（http://localhost:3000）
+make tf-validate-dev   # terraform 構文チェック
 ```
-
-#### 1件詳細配下の子一覧 API（適用外）
-
-特定リソース配下の子リソース一覧（例：`GET /tickets/{id}/comments`、`GET /tickets/{id}/attachments`）はページネーション不要。
-ただし、並び順は必ず明記すること（例：コメントは `created_at` 昇順）。
-
-### リレーション取得
-
-`include` クエリパラメータでリレーションを追加取得できる：
-
-```
-GET /customers?include=systems
-```
-
-N+1クエリを防ぐため、`include` で指定されたリレーションは JOIN または IN句でまとめて取得すること。
-
-### 日時形式
-
-全ての日時フィールドは ISO 8601 形式（`2026-05-10T09:00:00Z`）を使用する。
-
----
-
-## ドキュメント規約
-
-### OpenAPI仕様の更新
-
-新しいエンドポイントを追加・変更する場合は必ず [docs/api/openapi.yaml](docs/api/openapi.yaml) を同時に更新すること。
-
-チェックリスト：
-- [ ] `paths` にエンドポイントを追加
-- [ ] 対応する `tags` が存在するか確認（なければ追加）。タグはサービス単位で定義されており、どのサービスが担当するかを示す
-- [ ] 使用するスキーマを `components/schemas` に定義
-
-### 新しいサービスの追加
-
-1. [docs/api/architecture.md](docs/api/architecture.md) のサービスマップを更新
-2. [docs/api/openapi.yaml](docs/api/openapi.yaml) に新しいタグを追加
-3. [CLAUDE.md](CLAUDE.md) の「所有テーブル」テーブルを更新
-
----
-
-## コード規約（Go バックエンド）
-
-### ディレクトリ構成（想定）
-
-```
-services/
-  auth/           ← auth-service
-  ticket/         ← ticket-service
-  customer/       ← customer-service
-  system/         ← system-service
-  user/           ← user-service
-  analytics/      ← analytics-service
-gateway/          ← API Gateway
-internal/
-  domain/         ← 共有ドメインモデル（ENUMなど）
-  middleware/     ← 認証ミドルウェア
-```
-
-### サービス間の依存方向
-
-```
-gateway → （各サービスのHTTP endpoint）
-ticket-service → system-service（担当者プール検証）
-analytics-service → （全サービスDBの読み取り / Phase 1）
-```
-
-循環依存は禁止。新しい依存が必要になった場合はアーキテクチャ設計書を更新してからコードを書く。
-
----
-
-## テスト規約
-
-- ステータス遷移ルールの全パターンはユニットテストで網羅する
-- 権限チェック（admin/member）は各エンドポイントで統合テストを書く
-- 他サービスへの依存がある箇所はインターフェースでモック可能にする
-
----
-
-## 実装上の注意事項
-
-1. **添付ファイルのS3キー**は `tickets/{ticketId}/{uuid}.{ext}` 形式を使用する
-2. **ダウンロードURL**はS3署名付きURLを生成し、有効期限は15分とする
-3. **ticket_history の記録**はステータス変更・担当者変更・チケット更新時に自動で行う。APIクライアントからは明示的に呼び出さない
-4. **サイドバーデータ**（`GET /analytics/sidebar`）は頻繁にポーリングされる可能性があるため、Redis キャッシュ（TTL: 30秒）を検討すること

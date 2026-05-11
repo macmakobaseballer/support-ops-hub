@@ -1,0 +1,3 @@
+version: "2"
+# sqlc configuration. Queries and schema will be added in M1.
+sql: []
