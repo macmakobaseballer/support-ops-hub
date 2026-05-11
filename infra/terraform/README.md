@@ -37,11 +37,11 @@ terraform/
 
 ## 開発
 
-M0 時点では **各モジュールは variables/outputs と方針コメントのみ**。実リソース定義は後続マイルストーンで埋める。
+M0 〜 M7 時点では **各モジュールは variables/outputs と方針コメントのみ**。実リソース定義は M8（Infra 実装 & dev apply）で埋める。
 
 ```bash
 make tf-fmt              # terraform fmt -recursive -check
 make tf-validate-dev     # dev envs で terraform init + validate（リモート state なし）
 ```
 
-実 apply とリソース作成は backend が縦通し完了（M6）した後の別タスク。
+実 apply とリソース作成は backend / frontend が E2E まで通った後の **M8** で実施する。

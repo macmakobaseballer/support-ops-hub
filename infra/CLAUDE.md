@@ -80,8 +80,8 @@ provider "aws" {
 
 ### ルール I4：ステート管理
 
-- ステートファイルは S3 + DynamoDB ロックで管理する（実装は M6 以降）
-- 現時点（M0 〜 M5）では `terraform init -backend=false` で validate のみ実施。実 apply はステートバックエンド整備後
+- ステートファイルは S3 + DynamoDB ロックで管理する（実装は M8）
+- 現時点（M0 〜 M7）では `terraform init -backend=false` で validate のみ実施。実 apply はステートバックエンド整備後（M8）
 - バックエンド設定は `envs/{env}/backend.tf` に分離する
 
 ### ルール I5：apply の権限と経路
@@ -134,4 +134,4 @@ modules/<name>/
 
 ## マイルストーン
 
-M0 時点では各モジュールは骨格のみ（variables/outputs と空 resource）。実リソース定義は backend 縦通し（M6）後に整備する。
+M0 〜 M7 時点では各モジュールは骨格のみ（variables/outputs と空 resource）。実リソース定義は M8（Infra 実装 & dev apply）で整備する。
