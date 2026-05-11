@@ -1,0 +1,36 @@
+name: terraform
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/terraform.yml'
+  pull_request:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/terraform.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: terraform fmt
+        run: terraform fmt -recursive -check
+
+      - name: terraform init (dev, no backend)
+        run: terraform init -backend=false -input=false
+        working-directory: infra/terraform/envs/dev
+
+      - name: terraform validate (dev)
+        run: terraform validate
+        working-directory: infra/terraform/envs/dev

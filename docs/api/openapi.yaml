@@ -1099,8 +1099,12 @@ components:
           description: ユーザー向けエラーメッセージ（日本語）
         details:
           type: object
-          description: フィールドごとのバリデーションエラー詳細
-          additionalProperties: true
+          description: フィールドごとのバリデーションエラー詳細。キーはフィールド名、値は日本語エラーメッセージ
+          additionalProperties:
+            type: string
+          example:
+            customer_id: 必須項目です
+            name: 100文字以内で入力してください
 
     Pagination:
       type: object
