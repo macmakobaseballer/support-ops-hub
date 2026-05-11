@@ -14,7 +14,7 @@ AI エージェントがこのプロジェクトで作業する際のルート�
 | フロントエンド | Nuxt 3 + TypeScript + Pinia + Tailwind |
 | バックエンド | Go（モジュラーモノリス） |
 | データベース | MySQL 8.0（AWS RDS） |
-| インフラ | AWS（ECS Fargate / S3 / CloudFront）、Terraform |
+| インフラ | AWS（ECS on EC2 / RDS MySQL 8.0 / S3 / CloudFront、Redis 不使用）、Terraform |
 | CI | GitHub Actions |
 | 要件定義 | [docs/requirements/要件定義書.md](docs/requirements/要件定義書.md) |
 | API 仕様 | [docs/api/openapi.yaml](docs/api/openapi.yaml) |
@@ -105,7 +105,7 @@ Claude Code はディレクトリ配下の `CLAUDE.md` を自動でロードす�
 ローカル開発の起動は [Makefile](Makefile) のターゲットを使う：
 
 ```bash
-make up                # MySQL / Redis / LocalStack を起動
+make up                # MySQL / LocalStack を起動
 make backend-build     # backend をビルド
 make front-dev         # frontend を起動（http://localhost:3000）
 make tf-validate-dev   # terraform 構文チェック

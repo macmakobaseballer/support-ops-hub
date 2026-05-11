@@ -248,8 +248,9 @@ analytics-service → （全サービス DB の読み取り / Phase 1 限定）
 1. **添付ファイルの S3 キー**は `tickets/{ticketId}/{uuid}.{ext}` 形式を使用する
 2. **ダウンロード URL** は S3 署名付き URL を生成し、有効期限は 15 分とする
 3. **ticket_history の記録**はステータス変更・担当者変更・チケット更新時に自動で行う。API クライアントからは明示的に呼び出さない
-4. **サイドバーデータ**（`GET /analytics/sidebar`）は頻繁にポーリングされる可能性があるため、Redis キャッシュ（TTL: 30 秒）を検討すること
-5. **ローカル開発の外部依存**：[../docker-compose.yml](../docker-compose.yml) で MySQL 8.0 / Redis 7 / LocalStack（S3 互換）が起動する。AWS SDK は環境変数（`AWS_ENDPOINT_URL_S3` 等）で endpoint を上書きし、LocalStack ↔ 実 AWS を切り替えられる実装にする
+4. **サイドバーデータ**（`GET /analytics/sidebar`）は頻繁にポーリングされる可能性があるため、**プロセス内 TTL キャッシュ**（30 秒、`sync.Map` + 期限切れエントリ削除、`golang.org/x/sync/singleflight` でサンダリングハード回避）を実装する。ElastiCache / Redis は使わない（コスト最適化方針、[../infra/CLAUDE.md](../infra/CLAUDE.md) 参照）
+5. **JWT 失効管理**：ステートレス JWT で運用する（ブラックリストストアを持たない）。アクセストークン TTL は 15 分（`JWT_TTL=15m`）。`POST /auth/logout` はクライアント側でトークン破棄するだけの no-op として実装（200 を返す）。即時失効が必要になった場合の refresh token / DB ベース失効管理は後続マイルストーンで検討
+6. **ローカル開発の外部依存**：[../docker-compose.yml](../docker-compose.yml) で MySQL 8.0 / LocalStack（S3 互換）が起動する。AWS SDK は環境変数（`AWS_ENDPOINT_URL_S3` 等）で endpoint を上書きし、LocalStack ↔ 実 AWS を切り替えられる実装にする
 
 ---
 

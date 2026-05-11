@@ -21,17 +21,18 @@ AWS インフラ（Terraform）で作業する際のルール。**これらは�
 ## アーキテクチャ概要
 
 3 環境（dev / stg / prod）にそれぞれ同じモジュールをデプロイする。**prod のみ Multi-AZ** とする。
+**コスト最適化リビジョン**：Fargate / ElastiCache / NAT Gateway を使わない。詳細は [terraform/README.md](terraform/README.md) を参照。
 
 ```
 envs/{dev,stg,prod}/main.tf
   ↓ 呼び出し
 modules/
-  network        VPC・サブネット・NAT・SG
-  rds            RDS for MySQL 8.0
-  elasticache    ElastiCache for Redis
+  network        VPC・public/private subnet・SG・S3 Gateway VPC Endpoint
+                 （NAT Gateway / NAT インスタンスは作らない）
+  rds            RDS for MySQL 8.0（db.t4g.micro〜small）
   s3             添付ファイル用バケット
   ecr            コンテナレジストリ
-  ecs            ECS Fargate
+  ecs            ECS on EC2（cluster + capacity provider + ASG）
   alb            ALB + listener rules
   cloudfront     フロント配信
   iam            ECS task role + GitHub OIDC role
@@ -39,6 +40,8 @@ modules/
 ```
 
 **Phase 1 のデプロイ：** バックエンドは単一バイナリにリンクされ、1 つの ECS タスク・1 コンテナで起動する（[../backend/CLAUDE.md](../backend/CLAUDE.md) 構成参照）。`modules/ecs` は Phase 1 では task definition を 1 つだけ作成する。Phase 2 でサービスごとに task definition を分離する際に拡張する。
+
+JWT 失効管理・サイドバーキャッシュは ElastiCache を使わず、アプリ内（ステートレス JWT + in-process TTL キャッシュ）で完結させる（[../CLAUDE.md](../CLAUDE.md) 実装上の注意事項 4 を参照）。
 
 ---
 
@@ -91,7 +94,7 @@ provider "aws" {
 
 - `terraform destroy` は禁止（環境ごと作り直す場合のみ別途承認の上で実施）
 - リソースの置換が発生する変更（`-/+` の差分）は plan で確認し、PR に明記する
-- データを持つリソース（RDS / S3 / ElastiCache）の削除や置換は必ず事前に承認を得る
+- データを持つリソース（RDS / S3）の削除や置換は必ず事前に承認を得る
 
 ---
 

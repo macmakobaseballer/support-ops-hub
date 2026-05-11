@@ -1,6 +1,18 @@
 # infra/terraform
 
-AWS インフラを Terraform で管理する。
+AWS インフラを Terraform で管理する。**コスト最適化リビジョン**を適用。
+
+## 設計方針サマリ
+
+| 観点 | 採用 | 不採用にしたもの |
+|---|---|---|
+| コンテナ実行 | **ECS on EC2** (capacity provider + ASG) | Fargate |
+| KVS | **使わない**（JWT ステートレス + in-process キャッシュ） | ElastiCache for Redis |
+| RDB | **RDS for MySQL 8.0**（db.t4g.micro〜small） | Aurora / Serverless |
+| ネットワーク | **NAT なし**、アプリ EC2 は public subnet | NAT Gateway / NAT インスタンス |
+| S3 egress | **Gateway 型 VPC Endpoint**（無料） | NAT 経由 |
+
+詳細・トレードオフは [`docs/api/architecture.md`](../../docs/api/architecture.md) を参照。
 
 ## ディレクトリ
 
@@ -8,25 +20,24 @@ AWS インフラを Terraform で管理する。
 terraform/
 ├── versions.tf          required_providers (aws ~> 5.x)
 ├── modules/             再利用可能なリソースモジュール
-│   ├── network/         VPC・サブネット・NAT・SG
+│   ├── network/         VPC・subnet (public/private)・SG・S3 VPC endpoint
 │   ├── rds/             RDS for MySQL 8.0
-│   ├── elasticache/     ElastiCache for Redis
 │   ├── s3/              添付ファイル用バケット
 │   ├── ecr/             コンテナレジストリ
-│   ├── ecs/             ECS Fargate サービス（gateway/auth/ticket）
+│   ├── ecs/             ECS on EC2（cluster + ASG + capacity provider）
 │   ├── alb/             ALB + listener rules
 │   ├── cloudfront/      フロント配信
 │   ├── iam/             ECS task role + GitHub OIDC
 │   └── secrets/         Secrets Manager + SSM
 └── envs/
-    ├── dev/             開発環境
-    ├── stg/             ステージング
-    └── prod/            本番（Multi-AZ）
+    ├── dev/             1 EC2、Single-AZ RDS
+    ├── stg/             1 EC2、Single-AZ RDS
+    └── prod/            2 EC2 (Multi-AZ)、Multi-AZ RDS
 ```
 
 ## 開発
 
-M0 時点では **各モジュールは variables/outputs と空の resource ブロックのみ**。実リソース定義は後続マイルストーンで埋める。
+M0 時点では **各モジュールは variables/outputs と方針コメントのみ**。実リソース定義は後続マイルストーンで埋める。
 
 ```bash
 make tf-fmt              # terraform fmt -recursive -check
