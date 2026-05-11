@@ -1,5 +1,5 @@
 package main
 
 func main() {
-	// ticket-service entrypoint. Implemented in M4.
+	// ticket-service entrypoint. Implemented in M3.
 }
