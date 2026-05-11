@@ -69,11 +69,22 @@ MVP はモノリスとして実装しながらも、**内部をサービスモ�
 
 **JWT 失効戦略：** ステートレス JWT。アクセストークン TTL は 15 分。即時失効ストア（Redis 等）は持たない。`POST /auth/logout` はクライアントがトークンを破棄するだけの no-op として動作する（200 を返す）。最大 15 分のラグを許容する設計とし、refresh token / DB ベース失効管理は後続マイルストーンで検討。
 
+**段階的 Auth 戦略（マイルストーン別）：**
+
+サービス境界は最初から `X-User-ID` / `X-User-Role` ヘッダーで設計し、Gateway の auth 実装だけを段階的に差し替える。サービスコードはヘッダーの出元（dev-auth か JWT か）を意識しない。
+
+| フェーズ | Gateway の auth ミドルウェア | クライアント（FE） |
+|---|---|---|
+| **M2〜M6** | **dev-auth**：`X-Dev-User-Email` ヘッダーまたは dev cookie から user を引いて DB で role を取得、`X-User-ID` / `X-User-Role` を内部リクエストに注入。`POST /auth/login` はスタブ（email だけでダミートークン返却） | 開発用ユーザー切替セレクタで `X-Dev-User-Email` を localStorage または cookie に保存 |
+| **M7** | **本物 JWT**：`POST /auth/login` で bcrypt 検証 + JWT 発行、ミドルウェアは Bearer トークンを検証してヘッダー注入 | **SCR-01 ログイン画面**を追加、JWT を HttpOnly cookie で保存、API Gateway 経由でリクエスト |
+
+この設計により、M2〜M6 で書くサービスコードは M7 で 1 行も変更されない。
+
 **エンドポイント：**
 
 | メソッド | パス | 説明 |
 |---------|------|------|
-| POST | /auth/login | ログイン・JWT 発行（TTL 15 分） |
+| POST | /auth/login | M2〜M6: dev スタブ / M7: 本物のログイン・JWT 発行（TTL 15 分） |
 | POST | /auth/logout | no-op（クライアント側でトークン破棄） |
 | GET | /auth/me | 現在ユーザー情報 |
 

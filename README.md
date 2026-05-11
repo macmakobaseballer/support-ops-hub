@@ -25,7 +25,7 @@ cp .env.example .env
 # MySQL / LocalStack を起動
 make up
 
-# バックエンド（M0 時点ではビルドのみ通る空エントリ）
+# バックエンド（現時点ではビルドのみ通る空エントリ。M2 以降で実装）
 make backend-build
 
 # フロントエンド
@@ -37,12 +37,21 @@ make front-dev   # http://localhost:3000
 
 ## マイルストーン
 
-実装はマイルストーン単位で進める。
+実装はマイルストーン単位で進める。各マイルストーンの作業は Issue を起点に、`feature/<issue#>-<slug>` ブランチ → `develop` への PR 経由で取り込む（[CLAUDE.md](CLAUDE.md) 横断ルール 6）。
 
-- **M0**（現在）：プロジェクト骨格
-- M1：DB マイグレーション・sqlc・oapi-codegen 連携
-- M2：横断基盤 + auth-service
-- M3：API Gateway 最小
-- M4：ticket-service コア
-- M5：コメント & 添付（S3）
-- M6：縦通し E2E 検証
+| M | 名称 | Backend | Frontend | Infra | CI/CD |
+|---|---|---|---|---|---|
+| ✅ M0 | プロジェクト骨格 | go.mod + 空 cmd | Nuxt 雛形 | tf 骨格 | path-filter のみ |
+| M1 | Foundation | 8 テーブル migration、sqlc、oapi-codegen | openapi-typescript、layout、エラー表示、Pinia 基盤 | — | CI に `pnpm openapi:types` 追加 |
+| M2 | 横断基盤 + dev-auth Gateway | `internal/{httperr,middleware,domain,auth/jwt,config}`、Gateway リバプロ + dev-auth ミドルウェア | 開発用「ユーザー切替」セレクタ、`composables/useApi.ts` | — | — |
+| M3 | Tickets Core | ticket-service CRUD + ステータス遷移 + history | SCR-02/03/04 基本/05/06 | — | — |
+| M4 | Comments & Attachments | `/comments`・`/attachments`、LocalStack S3 | SCR-04 強化 | — | — |
+| M5 | Masters & Analytics | customer / system / user / analytics サービス | SCR-07/08/09/10/11/12、サイドバー | — | — |
+| M6 | E2E & 仕上げ | バグ修正 | Playwright E2E、UI/UX 仕上げ | — | E2E を CI で実行 |
+| M7 | 本物 Auth 切替 | auth-service 実装（bcrypt + JWT 発行）、Gateway middleware を JWT 検証に差替 | **SCR-01 ログイン画面**、cookie ベース保存に切替 | — | — |
+| M8 | Infra 実装 & dev apply | — | — | state backend、各モジュール resource 定義、`envs/dev/` を apply、スモークテスト | terraform plan/apply ワークフロー（OIDC） |
+| M9 | CI/CD 完成 | — | — | — | backend: ECR push → ECS deploy / frontend: build → S3 sync → CloudFront / terraform: plan on PR, apply on merge |
+
+### Auth 戦略について
+
+M2〜M6 は Gateway 側の **dev-auth ミドルウェア**（`X-Dev-User-Email` ヘッダーから user を引いて `X-User-ID`/`X-User-Role` を注入）で開発し、各サービスは [CLAUDE.md](CLAUDE.md) ルール 6 に沿ってヘッダーの出元を意識しない実装にする。M7 で Gateway middleware を本物 JWT 検証に差し替え、SCR-01 ログイン画面を追加する。サービスコードは差替時に一切変更しない。詳細は [docs/api/architecture.md](docs/api/architecture.md) §3.1 を参照。
