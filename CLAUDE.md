@@ -96,6 +96,23 @@ Claude Code はディレクトリ配下の `CLAUDE.md` を自動でロードす�
 
 各領域の `CLAUDE.md` に書かれたルールは **提案ではなくハードコンストレイント**。逸脱する場合は、コードを書く前に必ずユーザーに確認すること。
 
+### 横断ルール6：開発フローは Issue 起点で必ず PR 経由
+
+**すべての変更は Issue を起点に、feature ブランチ → develop への PR を経由してマージする。**
+
+| ステップ | 内容 |
+|---|---|
+| 1. Issue を切る | `gh issue create` で起票。タイトルは変更の意図を簡潔に。本文に背景・スコープ・受け入れ条件を書く |
+| 2. feature ブランチを切る | `develop` から `feature/<issue#>-<slug>` で分岐。例：`feature/12-m1-migrations`、`feature/15-fix-typo` |
+| 3. 実装・コミット | コミットメッセージは日本語で内容を簡潔に。Claude Code が編集した場合は `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>` トレーラーを付与 |
+| 4. PR を作る | base: `develop`、head: `feature/<issue#>-...`。本文に **`Closes #<issue#>`** を必ず含める（マージで Issue が自動クローズされる） |
+| 5. CI 確認 → マージ | 全ワークフロー（backend / frontend / terraform）が pass したら **merge commit** でマージ（squash / rebase はデフォルト不可） |
+| 6. Issue クローズ確認 | 自動クローズされなかった場合は手動で `gh issue close <issue#>` |
+
+リリース（develop → main）は別フロー：Issue 不要、`gh pr create --base main --head develop` で PR を作り、merge commit でマージする。
+
+**例外：** 本ルール導入のシード commit と、緊急障害対応のみ `develop` への直 push を許可する。後者の場合は事後に Issue を起票して履歴を残すこと。`main` への直 push は禁止。
+
 ---
 
 ## 開発の進め方
