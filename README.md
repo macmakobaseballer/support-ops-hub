@@ -22,7 +22,7 @@
 ```bash
 cp .env.example .env
 
-# MySQL / Redis / LocalStack を起動
+# MySQL / LocalStack を起動
 make up
 
 # バックエンド（M0 時点ではビルドのみ通る空エントリ）

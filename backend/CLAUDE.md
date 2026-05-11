@@ -11,7 +11,7 @@ Go バックエンドで作業する際のルール。**これらは提案では
 | 項目 | 内容 |
 |------|------|
 | 言語・バージョン | Go 1.26.3 |
-| モジュール | `github.com/fixer/support-ops-hub/backend` |
+| モジュール | `github.com/macmakobaseballer/support-ops-hub/backend` |
 | 設計 | モジュラーモノリス。**Phase 1 は単一バイナリにリンクして 1 ECS タスクで起動**し、サービス間は同一プロセス内のモジュール関数で相互呼び出し。Phase 2 で `cmd/<service>` を独立バイナリ・独立 ECS タスクに分離する設計 |
 | SQL コード生成 | sqlc（[sqlc.yaml](sqlc.yaml)） |
 | API コード生成 | oapi-codegen（[../docs/api/openapi.yaml](../docs/api/openapi.yaml) → `internal/apigen/`） |

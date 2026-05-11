@@ -11,7 +11,7 @@ SHELL := /bin/bash
 help:
 	@echo "Support Ops Hub — make targets"
 	@echo ""
-	@echo "  up               docker compose で MySQL/Redis/LocalStack を起動"
+	@echo "  up               docker compose で MySQL/LocalStack を起動"
 	@echo "  down             docker compose を停止 (ボリュームは残す)"
 	@echo "  logs             コンテナログを追従"
 	@echo "  ps               コンテナ状態を表示"
