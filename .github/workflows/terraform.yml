@@ -11,6 +11,9 @@ on:
       - 'infra/**'
       - '.github/workflows/terraform.yml'
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -24,13 +27,39 @@ jobs:
         with:
           terraform_version: 1.10.5
 
-      - name: terraform fmt
-        run: terraform fmt -recursive -check
+      - name: cache terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: tf-plugins-${{ hashFiles('infra/terraform/**/versions.tf', 'infra/terraform/envs/**/main.tf') }}
 
-      - name: terraform init (dev, no backend)
+      - run: terraform fmt -recursive -check
+
+      - name: init dev
         run: terraform init -backend=false -input=false
         working-directory: infra/terraform/envs/dev
 
-      - name: terraform validate (dev)
+      - name: validate dev
         run: terraform validate
         working-directory: infra/terraform/envs/dev
+
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
+      - name: cache tflint plugins
+        uses: actions/cache@v4
+        with:
+          path: ~/.tflint.d/plugins
+          key: tflint-${{ hashFiles('infra/terraform/.tflint.hcl') }}
+
+      - run: tflint --init
+      - run: tflint --recursive
+
+      - name: trivy config (HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: infra/terraform
+          severity: HIGH,CRITICAL
+          exit-code: '1'

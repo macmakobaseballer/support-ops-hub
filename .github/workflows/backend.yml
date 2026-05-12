@@ -11,8 +11,11 @@ on:
       - 'backend/**'
       - '.github/workflows/backend.yml'
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,11 +28,10 @@ jobs:
           go-version: '1.26'
           cache-dependency-path: backend/go.sum
 
-      - name: go build
-        run: go build ./...
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.0.2
+          working-directory: backend
 
-      - name: go vet
-        run: go vet ./...
-
-      - name: go test
-        run: go test ./...
+      - name: unit test (race + cover)
+        run: go test -race -cover ./...

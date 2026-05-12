@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(golangci-lint run:*)",
+      "Bash(govulncheck:*)",
+      "Bash(go test -race:*)",
+      "Bash(go test -race -cover:*)",
+      "Bash(cd backend && golangci-lint:*)",
+      "Bash(cd backend && go test:*)",
+      "Bash(cd backend && govulncheck:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm audit:*)",
+      "Bash(cd frontend && pnpm:*)",
+      "Bash(terraform fmt:*)",
+      "Bash(terraform validate:*)",
+      "Bash(terraform init -backend=false:*)",
+      "Bash(tflint:*)",
+      "Bash(cd infra/terraform:*)",
+      "Bash(trivy:*)",
+      "Bash(actionlint:*)",
+      "Bash(zizmor:*)"
+    ]
+  }
+}

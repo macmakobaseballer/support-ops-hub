@@ -35,6 +35,36 @@ make front-dev   # http://localhost:3000
 
 主要な make ターゲットは `make help` で確認。
 
+## 品質チェック
+
+PR を出す前に各レイヤーの lint / 型 / unit test / セキュリティをローカルで通す。Claude Code からは `/check-backend` などの skill で同じチェックを起動できる。
+
+```bash
+# 初回のみ：品質チェックツールを導入（~/.local/bin と ~/go/bin に入る）
+make tools-install
+
+# 日常（PR ゲート相当）
+make check-backend     # golangci-lint v2 + go test -race -cover
+make check-frontend    # ESLint + nuxt typecheck + vitest
+make check-infra       # terraform fmt/validate + tflint + trivy config
+make check-ci          # actionlint + zizmor (.github/workflows/)
+make check-secrets     # trivy fs --scanners secret (リポ全体)
+make check-all         # 上記 5 つを順次
+
+# 依存追加・変更時のみ
+make check-deps        # govulncheck + pnpm audit
+```
+
+CI は **3 階層** で動く：
+
+| 階層 | ワークフロー | 走るタイミング |
+|---|---|---|
+| PR ゲート（毎 push） | `backend.yml` / `frontend.yml` / `terraform.yml` / `quality.yml` | path-filter で関連レイヤーのみ起動 |
+| 依存変更時のみ | `backend-deps.yml` / `frontend-deps.yml` | `go.sum` / `pnpm-lock.yaml` の変更時のみ |
+| 週次 + main マージ | `weekly-scan.yml` | スケジュール（毎週月曜 03:00 JST）と main へのマージで全 CVE / 全 secret を再検査 |
+
+ツール選定とポリシーは [/home/mako/.claude/plans/api-reflective-whale.md](.) と [.github/zizmor.yml](.github/zizmor.yml) を参照。
+
 ## マイルストーン
 
 実装はマイルストーン単位で進める。各マイルストーンの作業は Issue を起点に、`feature/<issue#>-<slug>` ブランチ → `develop` への PR 経由で取り込む（[CLAUDE.md](CLAUDE.md) 横断ルール 6）。
