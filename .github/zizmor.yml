@@ -17,5 +17,5 @@ rules:
         "golangci/*": ref-pin
         "terraform-linters/*": ref-pin
         "reviewdog/*": ref-pin
-        "woodruffw/*": ref-pin
+        "zizmorcore/*": ref-pin
         "*": hash-pin

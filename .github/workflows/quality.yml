@@ -21,45 +21,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: woodruffw/zizmor-action@v0
+      - uses: zizmorcore/zizmor-action@v0.5.3
         with:
           min-severity: high
 
-  secret-diff:
+  secrets:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@0.36.0
         with:
-          fetch-depth: 0
-
-      - name: collect changed files
-        id: changed
-        env:
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          git fetch origin "$BASE_REF" --depth=50
-          base=$(git merge-base "origin/$BASE_REF" HEAD)
-          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$base"...HEAD | grep -Ev '^(node_modules|.nuxt|.terraform)/' || true)
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "no_changes=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "files<<EOF" >> "$GITHUB_OUTPUT"
-            printf '%s\n' "${files[@]}" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: trivy fs secret (diff)
-        if: steps.changed.outputs.no_changes != 'true'
-        env:
-          FILES: ${{ steps.changed.outputs.files }}
-        run: |
-          tmpdir=$(mktemp -d)
-          while IFS= read -r f; do
-            if [ -f "$f" ]; then
-              mkdir -p "$tmpdir/$(dirname "$f")"
-              cp "$f" "$tmpdir/$f"
-            fi
-          done <<< "$FILES"
-          docker run --rm -v "$tmpdir:/scan:ro" aquasec/trivy:0.70.0 \
-            fs --scanners secret --severity HIGH,CRITICAL --exit-code 1 /scan
+          scan-type: fs
+          scanners: secret
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          skip-dirs: 'node_modules,.nuxt,.terraform'
