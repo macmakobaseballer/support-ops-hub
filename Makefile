@@ -32,7 +32,7 @@ help:
 	@echo ""
 	@echo "Quality (品質チェック基盤):"
 	@echo "  tools-install    品質チェックツール (golangci-lint v2/govulncheck/trivy/tflint/actionlint/zizmor) を ~/.local/bin / ~/go/bin に導入"
-	@echo "  check-backend    backend: golangci-lint + go test -race -cover"
+	@echo "  check-backend    backend: golangci-lint + go test -cover (race は CI で実行)"
 	@echo "  check-frontend   frontend: lint + typecheck + vitest"
 	@echo "  check-infra      terraform fmt/validate + tflint + trivy config"
 	@echo "  check-ci         actionlint + zizmor (.github/workflows/)"

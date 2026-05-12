@@ -44,7 +44,7 @@ PR を出す前に各レイヤーの lint / 型 / unit test / セキュリティ
 make tools-install
 
 # 日常（PR ゲート相当）
-make check-backend     # golangci-lint v2 + go test -race -cover
+make check-backend     # golangci-lint v2 + go test -cover（race は CI で実行）
 make check-frontend    # ESLint + nuxt typecheck + vitest
 make check-infra       # terraform fmt/validate + tflint + trivy config
 make check-ci          # actionlint + zizmor (.github/workflows/)

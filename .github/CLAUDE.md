@@ -10,9 +10,13 @@ GitHub Actions ワークフロー（`.github/workflows/`）で作業する際の
 
 | ファイル | 対象 | トリガパス | 現在のジョブ |
 |---------|------|-----------|-----------|
-| [workflows/backend.yml](workflows/backend.yml) | Go バックエンド | `backend/**` | `go build` / `go vet` / `go test` |
-| [workflows/frontend.yml](workflows/frontend.yml) | Nuxt フロント | `frontend/**` / `docs/api/openapi.yaml` | `pnpm install` / `nuxt prepare` |
-| [workflows/terraform.yml](workflows/terraform.yml) | Terraform | `infra/**` | `terraform fmt` / `terraform validate`（dev env） |
+| [workflows/backend.yml](workflows/backend.yml) | Go バックエンド | `backend/**` | `golangci-lint` / `go test -race -cover` |
+| [workflows/frontend.yml](workflows/frontend.yml) | Nuxt フロント | `frontend/**` / `docs/api/openapi.yaml` | `pnpm lint` / `pnpm typecheck` / `pnpm test`（各ジョブで `pnpm openapi:types` 実行） |
+| [workflows/terraform.yml](workflows/terraform.yml) | Terraform | `infra/**` | `terraform fmt` / `terraform validate`（dev）/ `tflint` / `trivy config` |
+| [workflows/quality.yml](workflows/quality.yml) | CI品質・シークレット | 全 PR / `main,develop` への push | `actionlint` / `zizmor` / `trivy secret` |
+| [workflows/backend-deps.yml](workflows/backend-deps.yml) | Go 依存脆弱性 | `backend/go.mod` / `backend/go.sum` | `govulncheck` |
+| [workflows/frontend-deps.yml](workflows/frontend-deps.yml) | Node 依存脆弱性 | `frontend/package.json` / `frontend/pnpm-lock.yaml` | `pnpm audit --prod --audit-level=high` |
+| [workflows/weekly-scan.yml](workflows/weekly-scan.yml) | 定期セキュリティ再検査 | 毎週月曜 03:00 JST / `main` push / 手動実行 | `trivy secret` / `trivy vuln` / `govulncheck` / `pnpm audit` |
 
 ---
 
@@ -86,9 +90,9 @@ frontend ワークフローは追加で [`../docs/api/openapi.yaml`](../docs/api
 
 | ワークフロー | 追加予定ジョブ | マイルストーン |
 |------------|-------------|-------------|
-| backend.yml | golangci-lint / coverage 出力 / sqlc・oapi-codegen の diff チェック | M1+ |
-| frontend.yml | `pnpm typecheck` / `pnpm lint` / `pnpm test`（vitest） | M1+ |
-| terraform.yml | stg / prod env の validate / tflint / 計画的な plan 出力 | M6+ |
+| backend.yml | sqlc・oapi-codegen の生成差分チェック | M2+ |
+| frontend.yml | テスト結果のレポート出力（必要時） | M2+ |
+| terraform.yml | stg / prod env の validate / 計画的な plan 出力 | M6+ |
 
 追加時は本ドキュメントの「ワークフロー一覧」と「今後追加予定のジョブ」を更新する。
 
