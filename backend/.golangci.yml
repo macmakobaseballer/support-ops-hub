@@ -1,31 +1,33 @@
+version: "2"
+
 run:
   timeout: 5m
-  tests: true
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - gofumpt
     - gosec
     - misspell
 
-linters-settings:
-  gofumpt:
-    extra-rules: true
-  gosec:
-    excludes:
-      - G104 # errcheck covers this
+  settings:
+    gosec:
+      excludes:
+        - G104  # errcheck がカバー
 
-issues:
-  exclude-dirs:
-    - internal/apigen
-    - internal/db/sqlc
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gosec
+  exclusions:
+    paths:
+      - internal/apigen
+      - internal/db/sqlc
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - gofumpt

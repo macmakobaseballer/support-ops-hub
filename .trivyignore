@@ -1,0 +1,5 @@
+# trivy ignore file
+#
+# 誤検知やリスク受容のある検出を行ごとに無視する。
+# 形式：CVE-XXXX-XXXX や AVD-XXX-XXX を 1 行 1 件で記載。
+# 必ず無視する理由をコメント（# Reason: ...）として残す。

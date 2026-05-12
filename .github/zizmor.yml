@@ -1,0 +1,21 @@
+# zizmor configuration
+# https://docs.zizmor.sh/configuration/
+#
+# unpinned-uses は SHA pinning を要求するが、信頼できる publisher（GitHub 公式や
+# 主要 OSS 組織）は タグベース pinning (@vX.Y.Z) を許容する。
+# 真の third-party action は SHA pinning を必須とする。
+
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "actions/*": ref-pin
+        "github/*": ref-pin
+        "aquasecurity/*": ref-pin
+        "hashicorp/*": ref-pin
+        "pnpm/*": ref-pin
+        "golangci/*": ref-pin
+        "terraform-linters/*": ref-pin
+        "reviewdog/*": ref-pin
+        "zizmorcore/*": ref-pin
+        "*": hash-pin
