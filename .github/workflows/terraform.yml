@@ -54,7 +54,10 @@ jobs:
           key: tflint-${{ hashFiles('infra/terraform/.tflint.hcl') }}
 
       - run: tflint --init
-      - run: tflint --recursive
+      - name: tflint --recursive
+        env:
+          TFLINT_CONFIG_FILE: ${{ github.workspace }}/infra/terraform/.tflint.hcl
+        run: tflint --recursive
 
       - name: trivy config (HIGH/CRITICAL)
         uses: aquasecurity/trivy-action@v0.36.0
