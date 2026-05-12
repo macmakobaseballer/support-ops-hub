@@ -52,6 +52,9 @@ MVP はモノリスとして実装しながらも、**内部をサービスモ�
 
   ※ JWT はステートレス運用（TTL 15 分）。Redis / ElastiCache は使わない。
     サイドバーキャッシュは各サービスプロセス内 TTL キャッシュで実現。
+  ※ 上図の "API Gateway" は **アプリ独自の Go バイナリ**（`backend/cmd/gateway`）であり、
+    AWS マネージドの API Gateway サービスではない。AWS 上は ALB → ECS on EC2 task
+    として配置される（詳細は §4 と §7.1）。
 ```
 
 ---
@@ -169,11 +172,17 @@ MVP では管理者がDBに直接ユーザーを登録する運用を想定。�
 
 ## 4. API Gateway の責務
 
-API Gateway が担う横断的関心事：
+> **用語の整理：** 本書の "API Gateway" は **AWS マネージドサービスの API Gateway ではない**。アプリ独自の Go バイナリ（`backend/cmd/gateway/main.go`）であり、AWS では **ECS on EC2 のタスク** として起動する。AWS 側のルーティング層は **ALB**（詳細は §7.1）。コスト最適化方針で AWS API Gateway は不採用とした。
+>
+> ```
+> Internet → CloudFront (prod) / 直接 → ALB → ECS on EC2 task (cmd/gateway) → 同一プロセス内の各サービスモジュール
+> ```
+
+API Gateway（= `cmd/gateway`）が担う横断的関心事：
 
 | 責務 | 実装 |
 |------|------|
-| JWT検証 | Authorization ヘッダーを検証し、内部サービスへ `X-User-ID`, `X-User-Role` ヘッダーを付与 |
+| JWT検証 | Authorization ヘッダーを検証し、内部サービスへ `X-User-ID`, `X-User-Role` ヘッダーを付与（M2〜M6 は dev-auth、M7 で本物 JWT へ差替、§3.1 参照） |
 | ルーティング | パスプレフィックスで内部サービスへルーティング |
 | レートリミット | IPアドレスおよびユーザーIDベース |
 | リクエストログ | 全リクエストを記録（セキュリティ監査用） |
@@ -261,6 +270,7 @@ API Gateway: JWTを検証 → X-User-ID, X-User-Role ヘッダーを付与
 
 | レイヤー | 採用 | コスト・運用上の理由 |
 |---|---|---|
+| ルーティング層 | **ALB**（AWS マネージド API Gateway は不採用） | アプリ独自の `cmd/gateway`（§4）を ECS タスクとして起動し、AWS マネージド API Gateway のリクエスト課金を回避 |
 | コンテナ実行 | **ECS on EC2**（capacity provider + Auto Scaling Group） | Fargate より単価が低く、複数タスク相乗りで効率化 |
 | EC2 サイズ | dev/stg: t4g.small × 1、prod: t4g.medium × 2 (Multi-AZ) | Graviton（ARM）で価格性能比を高める |
 | RDB | RDS for MySQL 8.0、db.t4g.micro〜small、gp3 20〜50GB | Single-AZ（dev/stg）/ Multi-AZ（prod のみ） |
@@ -268,6 +278,28 @@ API Gateway: JWTを検証 → X-User-ID, X-User-Role ヘッダーを付与
 | ネットワーク | **NAT なし**。アプリ EC2 は public subnet（SG で ALB からのみ受信）、RDS は private subnet | NAT Gateway を削除して月額 $32×AZ を節約 |
 | egress 抑制 | S3 への通信は Gateway 型 VPC Endpoint（無料） | データ転送料の抑制 |
 | 静的配信 | CloudFront + S3（prod のみ）。dev/stg は ALB 直結 | dev の固定費削減 |
+
+```
+                             ┌────────────────┐
+  Client (Nuxt SSR / SPA) ──►│   ALB (https)  │
+                             └───────┬────────┘
+                                     │ パスベースルーティング
+                             ┌───────▼─────────────────────────────────────┐
+                             │ ECS Cluster (EC2 launch type)              │
+                             │  ┌─────────────────────────────────────┐  │
+                             │  │ task: cmd/gateway (本書の API Gateway)│  │
+                             │  │   ├─ ・JWT/dev-auth 検証              │  │
+                             │  │   ├─ ・ヘッダー注入 (X-User-ID etc.)  │  │
+                             │  │   ├─ ・CORS / レートリミット          │  │
+                             │  │   └─ 同一プロセス内のモジュール関数で │  │
+                             │  │      各 service を呼ぶ                │  │
+                             │  └─────────────────────────────────────┘  │
+                             └────────────────┬────────────────────────────┘
+                                              │ private subnet
+                                       ┌──────▼──────┐
+                                       │ RDS MySQL 8 │
+                                       └─────────────┘
+```
 
 詳細は [../../infra/CLAUDE.md](../../infra/CLAUDE.md) および [../../infra/terraform/README.md](../../infra/terraform/README.md) を参照。
 
