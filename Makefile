@@ -86,7 +86,7 @@ tf-validate-dev:
 TRIVY_VERSION ?= 0.70.0
 ACTIONLINT_VERSION ?= 1.7.12
 ZIZMOR_VERSION ?= 1.24.1
-GOLANGCI_LINT_VERSION ?= latest
+GOLANGCI_LINT_VERSION ?= v2.12.2
 
 tools-install:
 	@echo "==> Installing Go-based tools..."
