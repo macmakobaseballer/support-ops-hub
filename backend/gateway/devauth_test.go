@@ -22,25 +22,18 @@ func (s *stubUserLookup) GetUserByEmail(_ context.Context, _ string) (db.User, e
 	return s.user, s.err
 }
 
-var activeAdmin = db.User{
-	ID:       1,
-	Name:     "管理者",
-	Email:    "admin@example.com",
-	Role:     db.UsersRoleAdmin,
-	IsActive: true,
-	CreatedAt: time.Now(),
-	UpdatedAt: time.Now(),
-}
-
-var inactiveUser = db.User{
-	ID:       2,
-	Name:     "無効ユーザー",
-	Email:    "inactive@example.com",
-	Role:     db.UsersRoleMember,
-	IsActive: false,
-	CreatedAt: time.Now(),
-	UpdatedAt: time.Now(),
-}
+var (
+	activeAdmin = db.User{
+		ID: 1, Name: "管理者", Email: "admin@example.com",
+		Role: db.UsersRoleAdmin, IsActive: true,
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	inactiveUser = db.User{
+		ID: 2, Name: "無効ユーザー", Email: "inactive@example.com",
+		Role: db.UsersRoleMember, IsActive: false,
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+)
 
 func newDevAuthHandler(stub *stubUserLookup) http.Handler {
 	m := NewDevAuthMiddleware(stub)
