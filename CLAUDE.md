@@ -60,21 +60,11 @@ Claude Code はディレクトリ配下の `CLAUDE.md` を自動でロードす�
 
 ### 横断ルール2：OpenAPI 変更時の波及
 
-[docs/api/openapi.yaml](docs/api/openapi.yaml) を更新したら、以下も連動して更新する：
-
-- backend：oapi-codegen で `internal/apigen/` を再生成し、コミット
-- frontend：`pnpm openapi:types` で `types/api.d.ts` を再生成（gitignore のため CI で自動生成）
-- backend / frontend 双方のテストが新スキーマで通ることを確認
+[docs/api/openapi.yaml](docs/api/openapi.yaml) を更新したら、スキル `/openapi-update` を実行する（oapi-codegen 再生成・`pnpm openapi:types` 再生成・テスト確認の手順を含む）。
 
 ### 横断ルール3：新サービス追加手順
 
-新しいバックエンドサービスを追加する場合、以下を **すべて** 更新する：
-
-1. [docs/api/architecture.md](docs/api/architecture.md) のサービスマップ
-2. [docs/api/openapi.yaml](docs/api/openapi.yaml) に新タグを追加
-3. [backend/CLAUDE.md](backend/CLAUDE.md) の「所有テーブル」表
-4. [backend/](backend/) 配下に `cmd/<service>/main.go` を作成
-5. Phase 1：既存の単一バイナリ・ECS タスクに新サービスのモジュールをリンクする（[backend/CLAUDE.md](backend/CLAUDE.md) 構成参照）。Phase 2 で ECS タスクを分離する場合は [infra/terraform/envs/*/main.tf](infra/terraform/envs/) で配線
+新しいバックエンドサービスを追加する場合、スキル `/new-service` のチェックリストに従う。
 
 ### 横断ルール4：エラー形式の整合
 

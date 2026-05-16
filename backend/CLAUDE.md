@@ -125,86 +125,18 @@ done → （なし。終端ステータス）
 
 ## API 設計規約
 
-### エンドポイント命名
-
 - リソース名は複数形の名詞：`/tickets`, `/customers`, `/systems`
-- アクション（動詞）は HTTP メソッドで表現する
 - サブリソースはネスト：`/tickets/{id}/comments`
 - 特定のフィールド更新は PATCH + サブパス：`PATCH /tickets/{id}/status`
+- 全ての日時フィールドは ISO 8601 形式（`2026-05-10T09:00:00Z`）
 
-### フィルタ・ページネーション
-
-ページネーションの適用対象はエンドポイントの種類によって異なる。
-
-#### 検索系一覧 API（必須）
-
-独立したリソースの一覧取得エンドポイント。`page`/`per_page` クエリパラメータとレスポンスの `pagination` オブジェクトが必須。
-
-対象：`GET /tickets`, `GET /customers`, `GET /systems`, `GET /users`
-
-| パラメータ | 型 | 説明 |
-|-----------|-----|------|
-| page | integer | ページ番号（1始まり） |
-| per_page | integer | 件数（デフォルト50、最大200） |
-
-レスポンスに `pagination` オブジェクトを含める：
-
-```json
-{
-  "data": [...],
-  "pagination": {
-    "total": 150,
-    "page": 1,
-    "per_page": 50,
-    "total_pages": 3
-  }
-}
-```
-
-#### 1件詳細配下の子一覧 API（適用外）
-
-特定リソース配下の子リソース一覧（例：`GET /tickets/{id}/comments`、`GET /tickets/{id}/attachments`）はページネーション不要。
-ただし、並び順は必ず明記すること（例：コメントは `created_at` 昇順）。
-
-### リレーション取得
-
-`include` クエリパラメータでリレーションを追加取得できる：
-
-```
-GET /customers?include=systems
-```
-
-N+1 クエリを防ぐため、`include` で指定されたリレーションは JOIN または IN 句でまとめて取得すること。
-
-### 日時形式
-
-全ての日時フィールドは ISO 8601 形式（`2026-05-10T09:00:00Z`）を使用する。
+ページネーション・フィルタ・リレーション取得の詳細はスキル `/api-design` を参照。
 
 ---
 
 ## Go コード規約
 
-### ディレクトリ構成
-
-実構成は [README.md](README.md) を参照。骨格：
-
-```
-backend/
-├── cmd/                     ← 各サービスの main エントリポイント
-│   ├── gateway/
-│   ├── auth/
-│   └── ticket/
-├── services/                ← サービス別のハンドラ・ドメインロジック
-├── gateway/                 ← リバプロ + JWT ミドルウェア
-└── internal/
-    ├── apigen/              ← oapi-codegen 生成（コミット対象）
-    ├── db/                  ← migrations / queries / sqlc 生成
-    ├── domain/              ← 共有ドメインモデル（ENUM など）
-    ├── httperr/             ← エラー形式統一（ルール4）
-    ├── middleware/          ← request ID / slog / recover
-    ├── auth/jwt/            ← JWT 発行・検証
-    └── config/              ← envconfig
-```
+ディレクトリ構成は [README.md](README.md) を参照。
 
 ### サービス間の依存方向
 
@@ -256,15 +188,9 @@ analytics-service → （全サービス DB の読み取り / Phase 1 限定）
 
 ## ドキュメント更新義務
 
-新しいエンドポイントを追加・変更する場合は **必ず** [../docs/api/openapi.yaml](../docs/api/openapi.yaml) を同時に更新する。
+新しいエンドポイントを追加・変更する場合は [../docs/api/openapi.yaml](../docs/api/openapi.yaml) を同時に更新し、スキル `/openapi-update` を実行する。
 
-チェックリスト：
-- [ ] `paths` にエンドポイントを追加
-- [ ] 対応する `tags` が存在するか確認（なければ追加）。タグはサービス単位
-- [ ] 使用するスキーマを `components/schemas` に定義
-- [ ] エラーレスポンスは `components/schemas/Error` を参照（ルール4）
-
-新しいサービスを追加する場合は [../CLAUDE.md](../CLAUDE.md) の「横断ルール：新サービス追加手順」に従う。
+新しいサービスを追加する場合はスキル `/new-service` のチェックリストに従う。
 
 ---
 
@@ -283,9 +209,3 @@ analytics-service → （全サービス DB の読み取り / Phase 1 限定）
 ## CI
 
 backend のビルド・テストは [`.github/workflows/backend.yml`](../.github/workflows/backend.yml) で実行される（`go build` / `go vet` / `go test`）。詳細は [../.github/CLAUDE.md](../.github/CLAUDE.md) を参照。
-
----
-
-## マイルストーン
-
-実装は段階的に進める。現在のマイルストーンと進捗は [README.md](README.md) を参照。
