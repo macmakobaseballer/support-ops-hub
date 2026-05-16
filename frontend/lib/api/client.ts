@@ -7,6 +7,8 @@ export type ApiError = {
 export type ApiClientOptions = {
   baseURL: string
   getToken?: () => string | null
+  /** Returns the dev user email to inject as X-Dev-User-Email header (dev mode only). */
+  getDevUserEmail?: () => string | null
   onUnauthorized?: () => void
   onForbidden?: (err: ApiError) => void
   onServerError?: (err: ApiError) => void
@@ -24,6 +26,11 @@ export class ApiClient {
     const token = this.options.getToken?.()
     if (token) {
       headers.set('Authorization', `Bearer ${token}`)
+    }
+
+    const devEmail = this.options.getDevUserEmail?.()
+    if (devEmail) {
+      headers.set('X-Dev-User-Email', devEmail)
     }
 
     const resp = await fetch(`${this.options.baseURL}${path}`, {

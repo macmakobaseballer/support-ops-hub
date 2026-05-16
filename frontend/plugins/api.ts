@@ -10,6 +10,11 @@ export default defineNuxtPlugin(() => {
   const client = new ApiClient({
     baseURL: config.public.apiBase as string,
     getToken: () => authStore.token,
+    getDevUserEmail: () => {
+      if (!import.meta.dev) return null
+      // On page reload user may be null while devEmail is already restored from localStorage
+      return (authStore.user?.email ?? authStore.devEmail) as string | null
+    },
     onUnauthorized: () => {
       authStore.clearAuth()
       navigateTo('/login')

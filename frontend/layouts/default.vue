@@ -4,7 +4,10 @@ import { useApiError } from '~/composables/useApiError'
 
 const authStore = useAuthStore()
 const { error: apiError, clearError } = useApiError()
+const { login, logout: doLogout } = useAuth()
 const route = useRoute()
+const router = useRouter()
+const isDev = import.meta.dev
 
 const navItems = [
   { label: 'ダッシュボード', to: '/', icon: '📊' },
@@ -34,8 +37,16 @@ const isActive = (path: string) => {
   return route.path.startsWith(path)
 }
 
+const devUsers = ['admin@example.com', 'member1@example.com', 'member2@example.com']
+
+async function handleDevUserSwitch(e: Event) {
+  const email = (e.target as HTMLSelectElement).value
+  await login(email)
+  router.go(0)
+}
+
 async function logout() {
-  authStore.clearAuth()
+  await doLogout()
   await navigateTo('/login')
 }
 </script>
@@ -111,6 +122,28 @@ async function logout() {
             </span>
           </div>
         </div>
+
+        <!-- Dev user switcher — visible in development mode only -->
+        <div v-if="isDev" class="pt-1">
+          <p class="text-[10px] text-white/35 mb-1 uppercase tracking-wide">
+            DEV: ユーザー切替
+          </p>
+          <select
+            class="w-full text-xs bg-white/10 text-white rounded px-2 py-1 border border-white/20 focus:outline-none"
+            :value="authStore.user?.email ?? ''"
+            data-testid="dev-user-switcher"
+            @change="handleDevUserSwitch"
+          >
+            <option
+              v-for="email in devUsers"
+              :key="email"
+              :value="email"
+            >
+              {{ email }}
+            </option>
+          </select>
+        </div>
+
         <button
           type="button"
           class="w-full text-left text-sm text-white/70 hover:text-white transition-colors"
