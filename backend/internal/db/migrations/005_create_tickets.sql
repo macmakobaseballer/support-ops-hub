@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS tickets (
     id          BIGINT       NOT NULL AUTO_INCREMENT,
     title       VARCHAR(255) NOT NULL,
@@ -25,3 +26,6 @@ CREATE TABLE IF NOT EXISTS tickets (
     CONSTRAINT fk_tickets_assignee_id FOREIGN KEY (assignee_id) REFERENCES users     (id) ON DELETE SET NULL,
     CONSTRAINT fk_tickets_created_by  FOREIGN KEY (created_by)  REFERENCES users     (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- +goose Down
+DROP TABLE IF EXISTS tickets;

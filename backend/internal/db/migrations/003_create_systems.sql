@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS systems (
     id          BIGINT       NOT NULL AUTO_INCREMENT,
     name        VARCHAR(255) NOT NULL,
@@ -11,3 +12,6 @@ CREATE TABLE IF NOT EXISTS systems (
     INDEX idx_systems_is_active (is_active),
     CONSTRAINT fk_systems_customer_id FOREIGN KEY (customer_id) REFERENCES customers (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- +goose Down
+DROP TABLE IF EXISTS systems;

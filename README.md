@@ -25,6 +25,9 @@ cp .env.example .env
 # MySQL / LocalStack を起動
 make up
 
+# DB スキーマ適用（初回・スキーマ変更時。goose は make tools-install で導入）
+make db-migrate
+
 # バックエンド（現時点ではビルドのみ通る空エントリ。M2 以降で実装）
 make backend-build
 

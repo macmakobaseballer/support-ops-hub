@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS customers (
     id         BIGINT       NOT NULL AUTO_INCREMENT,
     name       VARCHAR(255) NOT NULL,
@@ -9,3 +10,6 @@ CREATE TABLE IF NOT EXISTS customers (
     UNIQUE KEY uk_customers_name (name),
     INDEX idx_customers_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- +goose Down
+DROP TABLE IF EXISTS customers;

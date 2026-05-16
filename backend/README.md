@@ -27,9 +27,14 @@ backend/
 `backend/` 単体ではなく、リポジトリルートの `make` ターゲットを使用する。
 
 ```bash
+make up              # MySQL 起動（リポジトリルート）
+make db-migrate      # goose で 8 テーブルを適用（.env の DB_DSN）
 make backend-build   # go build ./...
 make backend-vet     # go vet ./...
+make codegen         # sqlc + oapi-codegen 再生成
 ```
+
+マイグレーションは [pressly/goose](https://github.com/pressly/goose) を使用する。`internal/db/migrations/` の SQL は `-- +goose Up` / `-- +goose Down` 形式。適用状況は `make db-migrate-status` で確認できる。
 
 ## マイルストーン進捗
 

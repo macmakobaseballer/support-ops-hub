@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS attachments (
     id           BIGINT       NOT NULL AUTO_INCREMENT,
     ticket_id    BIGINT       NOT NULL,
@@ -12,3 +13,6 @@ CREATE TABLE IF NOT EXISTS attachments (
     CONSTRAINT fk_attachments_ticket_id   FOREIGN KEY (ticket_id)   REFERENCES tickets (id) ON DELETE CASCADE,
     CONSTRAINT fk_attachments_uploaded_by FOREIGN KEY (uploaded_by) REFERENCES users   (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- +goose Down
+DROP TABLE IF EXISTS attachments;

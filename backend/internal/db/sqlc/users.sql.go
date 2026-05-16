@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const getUser = `-- name: GetUser :one
@@ -54,26 +55,35 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const listUsersActive = `-- name: ListUsersActive :many
-SELECT id, name, email, password_hash, role, is_active, created_at, updated_at
+SELECT id, name, email, role, is_active, created_at, updated_at
 FROM users
 WHERE is_active = TRUE
 ORDER BY name
 `
 
-func (q *Queries) ListUsersActive(ctx context.Context) ([]User, error) {
+type ListUsersActiveRow struct {
+	ID        int64     `db:"id" json:"id"`
+	Name      string    `db:"name" json:"name"`
+	Email     string    `db:"email" json:"email"`
+	Role      UsersRole `db:"role" json:"role"`
+	IsActive  bool      `db:"is_active" json:"is_active"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) ListUsersActive(ctx context.Context) ([]ListUsersActiveRow, error) {
 	rows, err := q.db.QueryContext(ctx, listUsersActive)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []User
+	var items []ListUsersActiveRow
 	for rows.Next() {
-		var i User
+		var i ListUsersActiveRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.Email,
-			&i.PasswordHash,
 			&i.Role,
 			&i.IsActive,
 			&i.CreatedAt,
@@ -93,25 +103,34 @@ func (q *Queries) ListUsersActive(ctx context.Context) ([]User, error) {
 }
 
 const listUsersAll = `-- name: ListUsersAll :many
-SELECT id, name, email, password_hash, role, is_active, created_at, updated_at
+SELECT id, name, email, role, is_active, created_at, updated_at
 FROM users
 ORDER BY name
 `
 
-func (q *Queries) ListUsersAll(ctx context.Context) ([]User, error) {
+type ListUsersAllRow struct {
+	ID        int64     `db:"id" json:"id"`
+	Name      string    `db:"name" json:"name"`
+	Email     string    `db:"email" json:"email"`
+	Role      UsersRole `db:"role" json:"role"`
+	IsActive  bool      `db:"is_active" json:"is_active"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) ListUsersAll(ctx context.Context) ([]ListUsersAllRow, error) {
 	rows, err := q.db.QueryContext(ctx, listUsersAll)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []User
+	var items []ListUsersAllRow
 	for rows.Next() {
-		var i User
+		var i ListUsersAllRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.Email,
-			&i.PasswordHash,
 			&i.Role,
 			&i.IsActive,
 			&i.CreatedAt,

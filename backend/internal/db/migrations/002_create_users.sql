@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS users (
     id            BIGINT       NOT NULL AUTO_INCREMENT,
     name          VARCHAR(255) NOT NULL,
@@ -11,3 +12,6 @@ CREATE TABLE IF NOT EXISTS users (
     UNIQUE KEY uk_users_email (email),
     INDEX idx_users_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- +goose Down
+DROP TABLE IF EXISTS users;
