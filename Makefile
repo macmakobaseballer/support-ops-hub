@@ -7,7 +7,8 @@ SHELL := /bin/bash
 .PHONY: help up down logs ps backend-build backend-vet front-install front-dev \
         tf-fmt tf-validate-dev clean \
         tools-install check-backend check-frontend check-infra check-ci \
-        check-secrets check-deps check-all
+        check-secrets check-deps check-all \
+        sqlc oapi-codegen codegen db-migrate db-migrate-status
 
 help:
 	@echo "Support Ops Hub — make targets"
@@ -21,6 +22,8 @@ help:
 	@echo "Backend:"
 	@echo "  backend-build    go build ./..."
 	@echo "  backend-vet      go vet ./..."
+	@echo "  db-migrate       goose で MySQL マイグレーション適用 (.env の DB_DSN を使用)"
+	@echo "  db-migrate-status  goose の適用状況を表示"
 	@echo ""
 	@echo "Frontend:"
 	@echo "  front-install    pnpm install"
@@ -65,6 +68,34 @@ backend-build:
 backend-vet:
 	cd backend && go vet ./...
 
+# --- codegen ---
+
+SQLC_VERSION         ?= v1.27.0
+OAPI_CODEGEN_VERSION ?= v2.7.0
+
+sqlc:
+	cd backend && sqlc generate
+
+oapi-codegen:
+	oapi-codegen --config backend/internal/apigen/oapi-codegen.yaml \
+	             docs/api/openapi.yaml
+
+codegen: sqlc oapi-codegen
+	@echo "codegen complete"
+
+# --- database ---
+
+GOOSE_VERSION ?= v3.24.1
+DB_DSN        ?= app:app@tcp(127.0.0.1:3306)/support_ops_hub?parseTime=true&loc=Asia%2FTokyo&charset=utf8mb4
+
+db-migrate:
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	goose -dir backend/internal/db/migrations mysql "$${DB_DSN:-$(DB_DSN)}" up
+
+db-migrate-status:
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	goose -dir backend/internal/db/migrations mysql "$${DB_DSN:-$(DB_DSN)}" status
+
 # --- frontend ---
 
 front-install:
@@ -92,6 +123,9 @@ tools-install:
 	@echo "==> Installing Go-based tools..."
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION)
+	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION)
+	go install github.com/pressly/goose/v3/cmd/goose@$(GOOSE_VERSION)
 	@echo "==> Installing trivy v$(TRIVY_VERSION)..."
 	mkdir -p $$HOME/.local/bin
 	cd /tmp && curl -fsSL -o trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v$(TRIVY_VERSION)/trivy_$(TRIVY_VERSION)_Linux-64bit.tar.gz \

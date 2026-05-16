@@ -8,19 +8,37 @@
       "Bash(cd backend && golangci-lint:*)",
       "Bash(cd backend && go test:*)",
       "Bash(cd backend && govulncheck:*)",
+      "Bash(cd backend && go vet:*)",
+      "Bash(go vet ./...:*)",
+      "Bash(make oapi-codegen:*)",
+      "Bash(make codegen:*)",
+      "Bash(make sqlc:*)",
       "Bash(pnpm lint:*)",
       "Bash(pnpm typecheck:*)",
       "Bash(pnpm test:*)",
       "Bash(pnpm audit:*)",
+      "Bash(pnpm openapi:types:*)",
       "Bash(cd frontend && pnpm:*)",
       "Bash(terraform fmt:*)",
       "Bash(terraform validate:*)",
       "Bash(terraform init -backend=false:*)",
       "Bash(tflint:*)",
-      "Bash(cd infra/terraform:*)",
-      "Bash(trivy:*)",
       "Bash(actionlint:*)",
-      "Bash(zizmor:*)"
+      "Bash(zizmor:*)",
+      "Bash(trivy:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/makoj/dev/support-ops-hub/.claude/hooks/post-edit.sh"
+          }
+        ]
+      }
     ]
   }
 }

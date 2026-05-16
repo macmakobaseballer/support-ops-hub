@@ -1,0 +1,6 @@
+package: apigen
+generate:
+  models: true
+  strict-server: false
+  embedded-spec: false
+output: backend/internal/apigen/models.gen.go

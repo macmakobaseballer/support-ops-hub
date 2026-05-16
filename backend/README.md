@@ -27,10 +27,31 @@ backend/
 `backend/` 単体ではなく、リポジトリルートの `make` ターゲットを使用する。
 
 ```bash
+make up              # MySQL 起動（リポジトリルート）
+make db-migrate      # goose で 8 テーブルを適用（.env の DB_DSN）
 make backend-build   # go build ./...
 make backend-vet     # go vet ./...
+make codegen         # sqlc + oapi-codegen 再生成
 ```
+
+マイグレーションは [pressly/goose](https://github.com/pressly/goose) を使用する。`internal/db/migrations/` の SQL は `-- +goose Up` / `-- +goose Down` 形式。適用状況は `make db-migrate-status` で確認できる。
 
 ## マイルストーン進捗
 
-現在は M0（骨格のみ）。`cmd/*/main.go` は空エントリで `go build ./...` を通すことだけが目的。
+**M1 完了**。主な成果物：
+
+| 成果物 | パス |
+|--------|------|
+| DB マイグレーション（8テーブル） | `internal/db/migrations/` |
+| sqlc クエリ定義 | `internal/db/queries/` |
+| sqlc 生成（Go 型・クエリ関数） | `internal/db/sqlc/` |
+| oapi-codegen 生成（OpenAPI モデル） | `internal/apigen/models.gen.go` |
+
+`go build ./...` / `go vet ./...` / `go test ./...` は全パス。
+
+M2 以降の実装先：
+- `internal/domain/` — ENUM 型エイリアス・ドメインルール
+- `internal/httperr/` — エラー形式統一
+- `internal/middleware/` — リクエスト ID / ロギング / recover
+- `internal/config/` — envconfig
+- `gateway/` — dev-auth → M7 で JWT に差替
