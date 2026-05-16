@@ -14,7 +14,7 @@ Nuxt 3 フロントエンドで作業する際のルール。**これらは提�
 | 言語 | TypeScript（`strict: true`） |
 | パッケージマネージャ | pnpm 10.13.1（npm / yarn は使わない） |
 | 状態管理 | Pinia（`@pinia/nuxt`） |
-| スタイル | Tailwind CSS（`@nuxtjs/tailwindcss`） |
+| スタイル | Tailwind CSS v3（`@nuxtjs/tailwindcss` **6.11.4 固定**） |
 | ユーティリティ | VueUse（`@vueuse/nuxt`） |
 | Lint | ESLint（`@nuxt/eslint`） |
 | API 型生成 | openapi-typescript（`pnpm openapi:types`） |
@@ -149,6 +149,10 @@ stores/
 - Tailwind CSS のユーティリティクラスを基本とする
 - カスタム CSS は最小限に。必要な場合は `assets/css/` に置く
 - カラー・余白等のデザイントークンは Tailwind の設定で統一する
+
+**`@nuxtjs/tailwindcss` は `6.11.4` に固定すること**（`package.json` でキャレットなし）。
+v6.12 以降は Tailwind CSS v4 必須に変わり、プロジェクトが使う v3 の config（`tailwind.config.ts`）と非互換になる。
+`pnpm update` や `pnpm add` で誤ってアップグレードしないよう注意。
 
 ---
 
