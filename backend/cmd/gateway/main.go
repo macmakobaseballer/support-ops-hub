@@ -39,7 +39,7 @@ func main() {
 	}
 
 	queries := db.New(sqlDB)
-	router := gateway.NewRouter(queries)
+	router := gateway.NewRouter(queries, cfg.CORSAllowedOrigins)
 	srv := gateway.NewServer(cfg.GatewayPort, router)
 
 	if err := srv.ListenAndServe(); err != nil {

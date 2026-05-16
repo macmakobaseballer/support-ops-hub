@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,12 @@ import (
 	"github.com/macmakobaseballer/support-ops-hub/backend/internal/httperr"
 	"github.com/macmakobaseballer/support-ops-hub/backend/internal/middleware"
 )
+
+// authQuerier is the minimal DB interface needed by auth handlers (for testability).
+type authQuerier interface {
+	GetUserByEmail(ctx context.Context, email string) (db.User, error)
+	GetUser(ctx context.Context, id int64) (db.User, error)
+}
 
 type loginRequest struct {
 	Email    string `json:"email"`
@@ -32,7 +39,7 @@ type userDTO struct {
 
 // HandleLogin returns a dev stub token for M2.
 // M7 replaces this with bcrypt password verification + real JWT signing.
-func HandleLogin(queries *db.Queries) http.HandlerFunc {
+func HandleLogin(queries authQuerier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req loginRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -60,7 +67,7 @@ func HandleLogin(queries *db.Queries) http.HandlerFunc {
 		}
 
 		if !user.IsActive {
-			httperr.Unauthorized("このアカウントは無効です").Write(w)
+			httperr.Forbidden("このアカウントは無効です").Write(w)
 			return
 		}
 
@@ -90,7 +97,7 @@ func HandleLogout() http.HandlerFunc {
 }
 
 // HandleMe reads X-User-ID (injected by dev-auth middleware) and returns the user.
-func HandleMe(queries *db.Queries) http.HandlerFunc {
+func HandleMe(queries authQuerier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.Header.Get("X-User-ID")
 		if idStr == "" {
@@ -115,6 +122,11 @@ func HandleMe(queries *db.Queries) http.HandlerFunc {
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
 			httperr.InternalError("サーバーエラーが発生しました").Write(w)
+			return
+		}
+
+		if !user.IsActive {
+			httperr.Forbidden("このアカウントは無効です").Write(w)
 			return
 		}
 

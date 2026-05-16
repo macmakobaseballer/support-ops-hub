@@ -4,10 +4,10 @@ import { useApiError } from '~/composables/useApiError'
 
 const authStore = useAuthStore()
 const { error: apiError, clearError } = useApiError()
-const { login } = useAuth()
+const { login, logout: doLogout } = useAuth()
 const route = useRoute()
 const router = useRouter()
-const config = useRuntimeConfig()
+const isDev = import.meta.dev
 
 const navItems = [
   { label: 'ダッシュボード', to: '/', icon: '📊' },
@@ -46,7 +46,7 @@ async function handleDevUserSwitch(e: Event) {
 }
 
 async function logout() {
-  authStore.clearAuth()
+  await doLogout()
   await navigateTo('/login')
 }
 </script>
@@ -124,7 +124,7 @@ async function logout() {
         </div>
 
         <!-- Dev user switcher — visible in development mode only -->
-        <div v-if="config.public.isDev" class="pt-1">
+        <div v-if="isDev" class="pt-1">
           <p class="text-[10px] text-white/35 mb-1 uppercase tracking-wide">
             DEV: ユーザー切替
           </p>
