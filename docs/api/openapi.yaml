@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 
 info:
   title: Support Ops Hub API
@@ -342,7 +342,8 @@ paths:
               type: object
               properties:
                 assignee_id:
-                  type: ["integer", "null"]
+                  type: integer
+                  nullable: true
                   format: int64
       responses:
         "200":
@@ -1211,7 +1212,8 @@ components:
           type: string
           example: 株式会社サンプル
         notes:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         is_active:
           type: boolean
         system_count:
@@ -1237,7 +1239,8 @@ components:
           type: string
           maxLength: 255
         notes:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         is_active:
           type: boolean
           default: true
@@ -1250,7 +1253,8 @@ components:
           type: string
           maxLength: 255
         notes:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         is_active:
           type: boolean
 
@@ -1273,7 +1277,8 @@ components:
         customer_name:
           type: string
         description:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         is_active:
           type: boolean
         assignees:
@@ -1311,7 +1316,8 @@ components:
           type: string
           maxLength: 255
         description:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         assignee_user_ids:
           type: array
           items:
@@ -1329,7 +1335,8 @@ components:
           type: string
           maxLength: 255
         description:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         assignee_user_ids:
           type: array
           items:
@@ -1352,7 +1359,8 @@ components:
           type: string
           example: ログイン後に画面が表示されない
         description:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         type:
           $ref: "#/components/schemas/TicketType"
         priority:
@@ -1370,10 +1378,12 @@ components:
         system_name:
           type: string
         assignee_id:
-          type: ["integer", "null"]
+          type: integer
+          nullable: true
           format: int64
         assignee_name:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         created_by:
           type: integer
           format: int64
@@ -1408,9 +1418,11 @@ components:
           type: string
           maxLength: 255
         description:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         assignee_id:
-          type: ["integer", "null"]
+          type: integer
+          nullable: true
           format: int64
         received_at:
           type: string
@@ -1432,9 +1444,11 @@ components:
           type: string
           maxLength: 255
         description:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         assignee_id:
-          type: ["integer", "null"]
+          type: integer
+          nullable: true
           format: int64
         received_at:
           type: string
