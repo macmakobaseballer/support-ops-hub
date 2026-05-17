@@ -22,6 +22,10 @@ export default defineNuxtPlugin(() => {
     onForbidden: () => {
       setError('権限がありません')
     },
+    onValidationError: (err) => {
+      // 呼び出し元が catch していない場合のフォールバック通知
+      setError(err.message || '入力内容に誤りがあります')
+    },
     onServerError: (err) => {
       setError(err.message || 'サーバーエラーが発生しました')
     },

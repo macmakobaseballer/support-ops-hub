@@ -43,3 +43,17 @@ SELECT COUNT(*) FROM tickets WHERE status = ?;
 -- name: CountOpenTicketsBySystem :one
 SELECT COUNT(*) FROM tickets
 WHERE system_id = ? AND status IN ('new', 'in_progress', 'waiting');
+
+-- name: GetTicketDetail :one
+SELECT t.id, t.title, t.description, t.type, t.priority, t.status,
+       t.customer_id, c.name AS customer_name,
+       t.system_id,   s.name AS system_name,
+       t.assignee_id, a.name AS assignee_name,
+       t.created_by,  cb.name AS created_by_name,
+       t.received_at, t.created_at, t.updated_at
+FROM tickets t
+JOIN customers c  ON c.id = t.customer_id
+JOIN systems   s  ON s.id = t.system_id
+LEFT JOIN users a ON a.id = t.assignee_id
+JOIN users     cb ON cb.id = t.created_by
+WHERE t.id = ? LIMIT 1;

@@ -1109,6 +1109,7 @@ components:
 
     Pagination:
       type: object
+      required: [total, page, per_page, total_pages]
       properties:
         total:
           type: integer
@@ -1166,6 +1167,7 @@ components:
 
     User:
       type: object
+      required: [id, name, email, role, is_active, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -1191,6 +1193,7 @@ components:
     UserSummary:
       type: object
       description: 選択肢表示用の軽量ユーザー情報
+      required: [id, name]
       properties:
         id:
           type: integer
@@ -1204,6 +1207,7 @@ components:
 
     Customer:
       type: object
+      required: [id, name, is_active, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -1264,6 +1268,7 @@ components:
 
     System:
       type: object
+      required: [id, name, customer_id, customer_name, is_active, assignees, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -1296,6 +1301,7 @@ components:
     SystemSummary:
       type: object
       description: サイドバー・選択肢表示用の軽量システム情報
+      required: [id, name, is_active]
       properties:
         id:
           type: integer
@@ -1351,6 +1357,7 @@ components:
 
     Ticket:
       type: object
+      required: [id, title, type, priority, status, customer_id, customer_name, system_id, system_name, created_by, created_by_name, received_at, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -1460,6 +1467,7 @@ components:
 
     Comment:
       type: object
+      required: [id, ticket_id, author_id, author_name, body, created_at]
       properties:
         id:
           type: integer
@@ -1484,6 +1492,7 @@ components:
 
     Attachment:
       type: object
+      required: [id, ticket_id, uploaded_by, uploaded_by_name, file_name, file_size, content_type, download_url, created_at]
       properties:
         id:
           type: integer
@@ -1517,6 +1526,7 @@ components:
 
     StatusCounts:
       type: object
+      required: [new, in_progress, waiting, done]
       properties:
         new:
           type: integer
@@ -1529,6 +1539,7 @@ components:
 
     MonthlyTrendItem:
       type: object
+      required: [month, count]
       properties:
         month:
           type: string
@@ -1539,6 +1550,7 @@ components:
 
     TypeCounts:
       type: object
+      required: [question, bug, config, data]
       properties:
         question:
           type: integer
@@ -1551,6 +1563,7 @@ components:
 
     PriorityCounts:
       type: object
+      required: [high, medium, low]
       properties:
         high:
           type: integer
@@ -1561,6 +1574,7 @@ components:
 
     DashboardSummary:
       type: object
+      required: [counts_by_status, monthly_trend, open_counts_by_type, open_counts_by_priority, top_systems_by_open_count]
       properties:
         counts_by_status:
           $ref: "#/components/schemas/StatusCounts"
@@ -1570,16 +1584,19 @@ components:
           items:
             $ref: "#/components/schemas/MonthlyTrendItem"
         open_counts_by_type:
-          $ref: "#/components/schemas/TypeCounts"
+          allOf:
+            - $ref: "#/components/schemas/TypeCounts"
           description: 未完了チケットの種別内訳
         open_counts_by_priority:
-          $ref: "#/components/schemas/PriorityCounts"
+          allOf:
+            - $ref: "#/components/schemas/PriorityCounts"
           description: 未完了チケットの優先度別件数
         top_systems_by_open_count:
           type: array
           description: 未完了件数上位6システム
           items:
             type: object
+            required: [system_id, system_name, count]
             properties:
               system_id:
                 type: integer
@@ -1591,6 +1608,7 @@ components:
 
     CustomerReport:
       type: object
+      required: [customer_id, customer_name, counts_by_status, monthly_trend, open_counts_by_type, system_breakdown]
       properties:
         customer_id:
           type: integer
@@ -1611,6 +1629,7 @@ components:
           description: システム別ステータス件数
           items:
             type: object
+            required: [system_id, system_name, counts, total]
             properties:
               system_id:
                 type: integer
@@ -1624,6 +1643,7 @@ components:
 
     SystemDashboard:
       type: object
+      required: [system_id, system_name, customer_id, customer_name, counts_by_status]
       properties:
         system_id:
           type: integer

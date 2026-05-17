@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"database/sql"
 	"net/http"
 	"strings"
 	"time"
@@ -11,12 +12,17 @@ import (
 
 	db "github.com/macmakobaseballer/support-ops-hub/backend/internal/db/sqlc"
 	appmid "github.com/macmakobaseballer/support-ops-hub/backend/internal/middleware"
+	analyticsvc "github.com/macmakobaseballer/support-ops-hub/backend/services/analytics"
 	authsvc "github.com/macmakobaseballer/support-ops-hub/backend/services/auth"
+	customersvc "github.com/macmakobaseballer/support-ops-hub/backend/services/customer"
+	systemsvc "github.com/macmakobaseballer/support-ops-hub/backend/services/system"
+	ticketsvc "github.com/macmakobaseballer/support-ops-hub/backend/services/ticket"
 )
 
 // NewRouter builds the chi router with all routes and middleware for the gateway.
+// sqlDB is passed alongside queries for services that need dynamic SQL (e.g. ticket list).
 // allowedOrigins is a comma-separated list of origins (e.g. "http://localhost:3000").
-func NewRouter(queries *db.Queries, allowedOrigins string) http.Handler {
+func NewRouter(sqlDB *sql.DB, queries *db.Queries, allowedOrigins string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
@@ -44,10 +50,12 @@ func NewRouter(queries *db.Queries, allowedOrigins string) http.Handler {
 			r.Use(devAuth.Handler)
 			r.Post("/auth/logout", authsvc.HandleLogout())
 			r.Get("/auth/me", authsvc.HandleMe(queries))
-			// M3+ service routes will be mounted here:
-			// r.Mount("/tickets",   ticketsvc.Router(queries))
-			// r.Mount("/customers", customersvc.Router(queries))
-			// r.Mount("/systems",   systemsvc.Router(queries))
+
+			// M3 services
+			r.Mount("/tickets",   ticketsvc.Router(sqlDB, queries))
+			r.Mount("/analytics", analyticsvc.Router(queries))
+			r.Mount("/customers", customersvc.Router(queries))
+			r.Mount("/systems",   systemsvc.Router(queries))
 		})
 	})
 
