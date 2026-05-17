@@ -5,8 +5,6 @@
    複合スタイルのみここに定義する。
    =================================================================== */
 
-@import "bootstrap-icons/font/bootstrap-icons.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
