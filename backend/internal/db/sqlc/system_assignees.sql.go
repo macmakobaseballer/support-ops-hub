@@ -60,3 +60,39 @@ func (q *Queries) ListSystemAssignees(ctx context.Context, systemID int64) ([]Sy
 	}
 	return items, nil
 }
+
+const listSystemAssigneesWithUsers = `-- name: ListSystemAssigneesWithUsers :many
+SELECT u.id, u.name
+FROM system_assignees sa
+JOIN users u ON u.id = sa.user_id
+WHERE sa.system_id = ?
+ORDER BY u.name
+`
+
+type ListSystemAssigneesWithUsersRow struct {
+	ID   int64  `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
+}
+
+func (q *Queries) ListSystemAssigneesWithUsers(ctx context.Context, systemID int64) ([]ListSystemAssigneesWithUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSystemAssigneesWithUsers, systemID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSystemAssigneesWithUsersRow
+	for rows.Next() {
+		var i ListSystemAssigneesWithUsersRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
