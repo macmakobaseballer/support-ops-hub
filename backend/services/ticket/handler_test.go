@@ -20,12 +20,14 @@ import (
 
 // mockTicketQuerier implements ticketQuerier for unit tests.
 type mockTicketQuerier struct {
-	ticket       db.Ticket
-	ticketDetail db.GetTicketDetailRow
-	getErr       error
-	createResult sql.Result
-	createErr    error
-	updateErr    error
+	ticket           db.Ticket
+	ticketDetail     db.GetTicketDetailRow
+	getErr           error
+	createResult     sql.Result
+	createErr        error
+	updateErr        error
+	assigneeInPool   int64 // 0 = not in pool, 1 = in pool
+	assigneePoolErr  error
 }
 
 func (m *mockTicketQuerier) GetTicket(_ context.Context, _ int64) (db.Ticket, error) {
@@ -48,6 +50,9 @@ func (m *mockTicketQuerier) UpdateTicketAssignee(_ context.Context, _ db.UpdateT
 }
 func (m *mockTicketQuerier) CreateTicketHistory(_ context.Context, _ db.CreateTicketHistoryParams) error {
 	return nil
+}
+func (m *mockTicketQuerier) IsUserInSystemAssignees(_ context.Context, _ db.IsUserInSystemAssigneesParams) (int64, error) {
+	return m.assigneeInPool, m.assigneePoolErr
 }
 
 // mockResult implements sql.Result for CreateTicket tests.
@@ -354,4 +359,66 @@ func TestUpdateAssignee_NullAssignee_Returns200(t *testing.T) {
 	h(w, r)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// ─── Assignee pool validation tests ──────────────────────────────────────────
+
+func TestCreateTicket_AssigneeInPool_Returns201(t *testing.T) {
+	t.Parallel()
+	q := &mockTicketQuerier{
+		createResult:   mockResult{id: 1},
+		ticketDetail:   sampleDetail(),
+		assigneeInPool: 1,
+	}
+	h := HandleCreateTicket(q)
+
+	body, _ := json.Marshal(map[string]any{
+		"customer_id": 1, "system_id": 1,
+		"type": "bug", "priority": "high",
+		"title": "テスト", "assignee_id": 2,
+	})
+	r := chiRequest(http.MethodPost, "/tickets", body, nil)
+	w := httptest.NewRecorder()
+	h(w, r)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestCreateTicket_AssigneeNotInPool_Returns422(t *testing.T) {
+	t.Parallel()
+	q := &mockTicketQuerier{assigneeInPool: 0}
+	h := HandleCreateTicket(q)
+
+	body, _ := json.Marshal(map[string]any{
+		"customer_id": 1, "system_id": 1,
+		"type": "bug", "priority": "high",
+		"title": "テスト", "assignee_id": 99,
+	})
+	r := chiRequest(http.MethodPost, "/tickets", body, nil)
+	w := httptest.NewRecorder()
+	h(w, r)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	var resp map[string]any
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+	assert.Equal(t, "ASSIGNEE_NOT_IN_POOL", resp["code"])
+}
+
+func TestUpdateAssignee_AssigneeNotInPool_Returns422(t *testing.T) {
+	t.Parallel()
+	q := &mockTicketQuerier{
+		ticket:         sampleTicket(),
+		assigneeInPool: 0,
+	}
+	h := HandleUpdateAssignee(q)
+
+	body, _ := json.Marshal(map[string]any{"assignee_id": 99})
+	r := chiRequest(http.MethodPatch, "/tickets/1/assignee", body, map[string]string{"ticketId": "1"})
+	w := httptest.NewRecorder()
+	h(w, r)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	var resp map[string]any
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+	assert.Equal(t, "ASSIGNEE_NOT_IN_POOL", resp["code"])
 }

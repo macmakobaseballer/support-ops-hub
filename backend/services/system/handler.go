@@ -27,14 +27,14 @@ type systemQuerier interface {
 }
 
 type systemDTO struct {
-	ID          int64      `json:"id"`
-	Name        string     `json:"name"`
-	CustomerID  int64      `json:"customer_id"`
-	Description *string    `json:"description"`
-	IsActive    bool       `json:"is_active"`
+	ID          int64            `json:"id"`
+	Name        string           `json:"name"`
+	CustomerID  int64            `json:"customer_id"`
+	Description *string          `json:"description"`
+	IsActive    bool             `json:"is_active"`
 	Assignees   []userSummaryDTO `json:"assignees"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	CreatedAt   time.Time        `json:"created_at"`
+	UpdatedAt   time.Time        `json:"updated_at"`
 }
 
 type userSummaryDTO struct {
@@ -95,7 +95,8 @@ func HandleListSystems(queries systemQuerier) http.HandlerFunc {
 			}
 		}
 		if err != nil {
-			slog.ErrorContext(r.Context(), "system list: db error",
+			slog.ErrorContext(
+				r.Context(), "system list: db error",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -134,7 +135,8 @@ func HandleGetSystem(queries systemQuerier) http.HandlerFunc {
 				httperr.NotFound("SYSTEM_NOT_FOUND", "指定されたシステムは存在しません").Write(w)
 				return
 			}
-			slog.ErrorContext(r.Context(), "system get: db error",
+			slog.ErrorContext(
+				r.Context(), "system get: db error",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -156,7 +158,8 @@ func HandleListAssignees(queries systemQuerier) http.HandlerFunc {
 
 		assignees, err := queries.ListSystemAssigneesWithUsers(r.Context(), id)
 		if err != nil {
-			slog.ErrorContext(r.Context(), "system assignees: db error",
+			slog.ErrorContext(
+				r.Context(), "system assignees: db error",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)

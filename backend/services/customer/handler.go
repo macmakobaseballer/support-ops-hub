@@ -24,12 +24,12 @@ type customerQuerier interface {
 }
 
 type customerDTO struct {
-	ID        int64      `json:"id"`
-	Name      string     `json:"name"`
-	Notes     *string    `json:"notes"`
-	IsActive  bool       `json:"is_active"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Notes     *string   `json:"notes"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func toDTO(c db.Customer) customerDTO {
@@ -67,7 +67,8 @@ func HandleListCustomers(queries customerQuerier) http.HandlerFunc {
 			customers, err = queries.ListCustomersAll(r.Context())
 		}
 		if err != nil {
-			slog.ErrorContext(r.Context(), "customer list: db error",
+			slog.ErrorContext(
+				r.Context(), "customer list: db error",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -106,7 +107,8 @@ func HandleGetCustomer(queries customerQuerier) http.HandlerFunc {
 				httperr.NotFound("CUSTOMER_NOT_FOUND", "指定された顧客企業は存在しません").Write(w)
 				return
 			}
-			slog.ErrorContext(r.Context(), "customer get: db error",
+			slog.ErrorContext(
+				r.Context(), "customer get: db error",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)

@@ -11,6 +11,8 @@ export type ApiClientOptions = {
   getDevUserEmail?: () => string | null
   onUnauthorized?: () => void
   onForbidden?: (err: ApiError) => void
+  /** 422 Unprocessable Entity: validation errors or business rule violations. */
+  onValidationError?: (err: ApiError) => void
   onServerError?: (err: ApiError) => void
 }
 
@@ -70,6 +72,10 @@ export class ApiClient {
     }
     if (status === 403) {
       this.options.onForbidden?.(err)
+      return
+    }
+    if (status === 422) {
+      this.options.onValidationError?.(err)
       return
     }
     if (status >= 500) {

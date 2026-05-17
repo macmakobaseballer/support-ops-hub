@@ -15,3 +15,6 @@ FROM system_assignees sa
 JOIN users u ON u.id = sa.user_id
 WHERE sa.system_id = ?
 ORDER BY u.name;
+
+-- name: IsUserInSystemAssignees :one
+SELECT COUNT(*) FROM system_assignees WHERE system_id = ? AND user_id = ?;

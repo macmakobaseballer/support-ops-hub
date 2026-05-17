@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { components } from '~/types/api'
+import type { ApiError } from '~/lib/api/client'
 
 type TicketStatus = components['schemas']['TicketStatus']
 type TicketPriority = components['schemas']['TicketPriority']
@@ -40,11 +41,17 @@ function transitionLabel(to: TicketStatus, currentStatus: TicketStatus): string 
   return STATUS_TRANSITION_LABELS[to] ?? to
 }
 
+const { setError } = useApiError()
+
 async function changeStatus(status: TicketStatus) {
   if (!ticket.value) return
   updatingStatus.value = true
   try {
     await ticketsStore.updateStatus(ticketId, status)
+  }
+  catch (err: unknown) {
+    const apiErr = err as ApiError
+    setError(apiErr.message || 'ステータスの変更に失敗しました')
   }
   finally {
     updatingStatus.value = false

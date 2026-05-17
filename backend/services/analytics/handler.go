@@ -64,11 +64,11 @@ type topSystemItemDTO struct {
 }
 
 type dashboardSummaryDTO struct {
-	CountsByStatus       statusCountsDTO       `json:"counts_by_status"`
-	MonthlyTrend         []monthlyTrendItemDTO `json:"monthly_trend"`
-	OpenCountsByType     typeCountsDTO         `json:"open_counts_by_type"`
-	OpenCountsByPriority priorityCountsDTO     `json:"open_counts_by_priority"`
-	TopSystemsByOpenCount []topSystemItemDTO   `json:"top_systems_by_open_count"`
+	CountsByStatus        statusCountsDTO       `json:"counts_by_status"`
+	MonthlyTrend          []monthlyTrendItemDTO `json:"monthly_trend"`
+	OpenCountsByType      typeCountsDTO         `json:"open_counts_by_type"`
+	OpenCountsByPriority  priorityCountsDTO     `json:"open_counts_by_priority"`
+	TopSystemsByOpenCount []topSystemItemDTO    `json:"top_systems_by_open_count"`
 }
 
 type systemBreakdownItemDTO struct {
@@ -79,12 +79,12 @@ type systemBreakdownItemDTO struct {
 }
 
 type customerReportDTO struct {
-	CustomerID      int64                   `json:"customer_id"`
-	CustomerName    string                  `json:"customer_name"`
-	CountsByStatus  statusCountsDTO         `json:"counts_by_status"`
-	MonthlyTrend    []monthlyTrendItemDTO   `json:"monthly_trend"`
-	OpenCountsByType typeCountsDTO          `json:"open_counts_by_type"`
-	SystemBreakdown []systemBreakdownItemDTO `json:"system_breakdown"`
+	CustomerID       int64                    `json:"customer_id"`
+	CustomerName     string                   `json:"customer_name"`
+	CountsByStatus   statusCountsDTO          `json:"counts_by_status"`
+	MonthlyTrend     []monthlyTrendItemDTO    `json:"monthly_trend"`
+	OpenCountsByType typeCountsDTO            `json:"open_counts_by_type"`
+	SystemBreakdown  []systemBreakdownItemDTO `json:"system_breakdown"`
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -304,9 +304,9 @@ func HandleCustomerReport(queries analyticsQuerier) http.HandlerFunc {
 				Waiting:    counts.WaitingCount,
 				Done:       counts.DoneCount,
 			},
-			MonthlyTrend:    buildCustomerMonthlyTrend(trend),
+			MonthlyTrend:     buildCustomerMonthlyTrend(trend),
 			OpenCountsByType: buildTypeCountsFromCustomerRows(typeRows),
-			SystemBreakdown: sysBreakdown,
+			SystemBreakdown:  sysBreakdown,
 		})
 	}
 }

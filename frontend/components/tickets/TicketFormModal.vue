@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { components } from '~/types/api'
+import type { ApiError } from '~/lib/api/client'
 
 type Ticket = components['schemas']['Ticket']
 type TicketCreate = components['schemas']['TicketCreate']
@@ -160,6 +161,21 @@ async function submit() {
     }
     emit('saved', ticket)
     emit('update:modelValue', false)
+  }
+  catch (err: unknown) {
+    const apiErr = err as ApiError
+    // サーバー側バリデーションエラーの details をフォームフィールドに反映
+    if (apiErr.details) {
+      for (const [field, msg] of Object.entries(apiErr.details)) {
+        if (field in formErrors) {
+          (formErrors as Record<string, string>)[field] = msg
+        }
+      }
+    }
+    // details のないエラー（ASSIGNEE_NOT_IN_POOL 等）はフォームの先頭に表示
+    if (!apiErr.details && apiErr.message) {
+      formErrors.title = apiErr.message
+    }
   }
   finally {
     saving.value = false

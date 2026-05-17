@@ -28,6 +28,7 @@ type ticketQuerier interface {
 	UpdateTicketStatus(ctx context.Context, arg db.UpdateTicketStatusParams) error
 	UpdateTicketAssignee(ctx context.Context, arg db.UpdateTicketAssigneeParams) error
 	CreateTicketHistory(ctx context.Context, arg db.CreateTicketHistoryParams) error
+	IsUserInSystemAssignees(ctx context.Context, arg db.IsUserInSystemAssigneesParams) (int64, error)
 }
 
 // rawQuerier is used for the dynamic list query.
@@ -62,23 +63,23 @@ func validTicketStatus(s string) bool {
 
 // ticketDTO is the API response shape for a single ticket.
 type ticketDTO struct {
-	ID            int64      `json:"id"`
-	Title         string     `json:"title"`
-	Description   *string    `json:"description"`
-	Type          string     `json:"type"`
-	Priority      string     `json:"priority"`
-	Status        string     `json:"status"`
-	CustomerID    int64      `json:"customer_id"`
-	CustomerName  string     `json:"customer_name"`
-	SystemID      int64      `json:"system_id"`
-	SystemName    string     `json:"system_name"`
-	AssigneeID    *int64     `json:"assignee_id"`
-	AssigneeName  *string    `json:"assignee_name"`
-	CreatedBy     int64      `json:"created_by"`
-	CreatedByName string     `json:"created_by_name"`
-	ReceivedAt    time.Time  `json:"received_at"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ID            int64     `json:"id"`
+	Title         string    `json:"title"`
+	Description   *string   `json:"description"`
+	Type          string    `json:"type"`
+	Priority      string    `json:"priority"`
+	Status        string    `json:"status"`
+	CustomerID    int64     `json:"customer_id"`
+	CustomerName  string    `json:"customer_name"`
+	SystemID      int64     `json:"system_id"`
+	SystemName    string    `json:"system_name"`
+	AssigneeID    *int64    `json:"assignee_id"`
+	AssigneeName  *string   `json:"assignee_name"`
+	CreatedBy     int64     `json:"created_by"`
+	CreatedByName string    `json:"created_by_name"`
+	ReceivedAt    time.Time `json:"received_at"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type paginationDTO struct {
@@ -281,7 +282,8 @@ func HandleListTickets(rawDB rawQuerier, queries ticketQuerier) http.HandlerFunc
 
 		var total int64
 		if err := rawDB.QueryRowContext(r.Context(), countQ, countArgs...).Scan(&total); err != nil {
-			slog.ErrorContext(r.Context(), "ticket list: count query",
+			slog.ErrorContext(
+				r.Context(), "ticket list: count query",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -291,20 +293,26 @@ func HandleListTickets(rawDB rawQuerier, queries ticketQuerier) http.HandlerFunc
 
 		rows, err := rawDB.QueryContext(r.Context(), dataQ, args...)
 		if err != nil {
-			slog.ErrorContext(r.Context(), "ticket list: data query",
+			slog.ErrorContext(
+				r.Context(), "ticket list: data query",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
 			httperr.InternalError("サーバーエラーが発生しました").Write(w)
 			return
 		}
-		defer rows.Close()
+		defer func() {
+			if err := rows.Close(); err != nil {
+				slog.ErrorContext(r.Context(), "ticket list: close rows", slog.Any("error", err))
+			}
+		}()
 
 		items := make([]ticketDTO, 0)
 		for rows.Next() {
 			dto, err := scanListRow(rows)
 			if err != nil {
-				slog.ErrorContext(r.Context(), "ticket list: scan",
+				slog.ErrorContext(
+					r.Context(), "ticket list: scan",
 					slog.Any("error", err),
 					slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 				)
@@ -314,7 +322,8 @@ func HandleListTickets(rawDB rawQuerier, queries ticketQuerier) http.HandlerFunc
 			items = append(items, dto)
 		}
 		if err := rows.Err(); err != nil {
-			slog.ErrorContext(r.Context(), "ticket list: rows err",
+			slog.ErrorContext(
+				r.Context(), "ticket list: rows err",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -353,7 +362,8 @@ func HandleGetTicket(queries ticketQuerier) http.HandlerFunc {
 				httperr.NotFound("TICKET_NOT_FOUND", "指定されたチケットは存在しません").Write(w)
 				return
 			}
-			slog.ErrorContext(r.Context(), "ticket get: db error",
+			slog.ErrorContext(
+				r.Context(), "ticket get: db error",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -413,6 +423,28 @@ func HandleCreateTicket(queries ticketQuerier) http.HandlerFunc {
 			return
 		}
 
+		// Validate assignee is in the system's assignee pool when specified.
+		if req.AssigneeID != nil {
+			count, err := queries.IsUserInSystemAssignees(r.Context(), db.IsUserInSystemAssigneesParams{
+				SystemID: req.SystemID,
+				UserID:   *req.AssigneeID,
+			})
+			if err != nil {
+				slog.ErrorContext(
+					r.Context(), "ticket create: check assignee pool",
+					slog.Any("error", err),
+					slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
+				)
+				httperr.InternalError("サーバーエラーが発生しました").Write(w)
+				return
+			}
+			if count == 0 {
+				httperr.UnprocessableEntity("ASSIGNEE_NOT_IN_POOL",
+					"指定された担当者はこのシステムの担当者プールに含まれていません").Write(w)
+				return
+			}
+		}
+
 		params := db.CreateTicketParams{
 			Title:      req.Title,
 			Type:       db.TicketsType(req.Type),
@@ -436,7 +468,8 @@ func HandleCreateTicket(queries ticketQuerier) http.HandlerFunc {
 
 		result, err := queries.CreateTicket(r.Context(), params)
 		if err != nil {
-			slog.ErrorContext(r.Context(), "ticket create: db error",
+			slog.ErrorContext(
+				r.Context(), "ticket create: db error",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -473,12 +506,16 @@ func HandleUpdateTicket(queries ticketQuerier) http.HandlerFunc {
 			return
 		}
 
+		// AssigneeID uses **int64 to distinguish three states:
+		//   nil      = field absent from JSON → keep current value
+		//   &nil     = JSON null              → clear assignee
+		//   &(&n)    = JSON number n          → set to n
 		var req struct {
 			Type        string  `json:"type"`
 			Priority    string  `json:"priority"`
 			Title       string  `json:"title"`
 			Description *string `json:"description"`
-			AssigneeID  *int64  `json:"assignee_id"`
+			AssigneeID  **int64 `json:"assignee_id"`
 			ReceivedAt  *string `json:"received_at"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -511,7 +548,8 @@ func HandleUpdateTicket(queries ticketQuerier) http.HandlerFunc {
 				httperr.NotFound("TICKET_NOT_FOUND", "指定されたチケットは存在しません").Write(w)
 				return
 			}
-			slog.ErrorContext(r.Context(), "ticket update: get current",
+			slog.ErrorContext(
+				r.Context(), "ticket update: get current",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -536,10 +574,34 @@ func HandleUpdateTicket(queries ticketQuerier) http.HandlerFunc {
 			// explicit null clears description
 			params.Description = sql.NullString{}
 		}
-		if req.AssigneeID != nil {
-			params.AssigneeID = sql.NullInt64{Int64: *req.AssigneeID, Valid: true}
-		} else {
+		switch {
+		case req.AssigneeID == nil:
+			// Field absent: keep current value.
+			params.AssigneeID = current.AssigneeID
+		case *req.AssigneeID == nil:
+			// Explicit null: clear assignee.
 			params.AssigneeID = sql.NullInt64{}
+		default:
+			// Validate new assignee is in the system's pool.
+			count, err := queries.IsUserInSystemAssignees(r.Context(), db.IsUserInSystemAssigneesParams{
+				SystemID: current.SystemID,
+				UserID:   **req.AssigneeID,
+			})
+			if err != nil {
+				slog.ErrorContext(
+					r.Context(), "ticket update: check assignee pool",
+					slog.Any("error", err),
+					slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
+				)
+				httperr.InternalError("サーバーエラーが発生しました").Write(w)
+				return
+			}
+			if count == 0 {
+				httperr.UnprocessableEntity("ASSIGNEE_NOT_IN_POOL",
+					"指定された担当者はこのシステムの担当者プールに含まれていません").Write(w)
+				return
+			}
+			params.AssigneeID = sql.NullInt64{Int64: **req.AssigneeID, Valid: true}
 		}
 		if req.ReceivedAt != nil {
 			if t, err := time.Parse(time.RFC3339, *req.ReceivedAt); err == nil {
@@ -548,7 +610,8 @@ func HandleUpdateTicket(queries ticketQuerier) http.HandlerFunc {
 		}
 
 		if err := queries.UpdateTicket(r.Context(), params); err != nil {
-			slog.ErrorContext(r.Context(), "ticket update: update",
+			slog.ErrorContext(
+				r.Context(), "ticket update: update",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -558,10 +621,10 @@ func HandleUpdateTicket(queries ticketQuerier) http.HandlerFunc {
 
 		// Record history for changed fields.
 		histFields := []struct {
-			name     string
-			oldVal   string
-			newVal   string
-			changed  bool
+			name    string
+			oldVal  string
+			newVal  string
+			changed bool
 		}{
 			{"title", current.Title, req.Title, current.Title != req.Title},
 			{"type", string(current.Type), req.Type, string(current.Type) != req.Type},
@@ -624,7 +687,8 @@ func HandleUpdateStatus(queries ticketQuerier) http.HandlerFunc {
 				httperr.NotFound("TICKET_NOT_FOUND", "指定されたチケットは存在しません").Write(w)
 				return
 			}
-			slog.ErrorContext(r.Context(), "ticket status: get current",
+			slog.ErrorContext(
+				r.Context(), "ticket status: get current",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -647,7 +711,8 @@ func HandleUpdateStatus(queries ticketQuerier) http.HandlerFunc {
 			ID:     id,
 			Status: nextStatus,
 		}); err != nil {
-			slog.ErrorContext(r.Context(), "ticket status: update",
+			slog.ErrorContext(
+				r.Context(), "ticket status: update",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -700,7 +765,8 @@ func HandleUpdateAssignee(queries ticketQuerier) http.HandlerFunc {
 				httperr.NotFound("TICKET_NOT_FOUND", "指定されたチケットは存在しません").Write(w)
 				return
 			}
-			slog.ErrorContext(r.Context(), "ticket assignee: get current",
+			slog.ErrorContext(
+				r.Context(), "ticket assignee: get current",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)
@@ -710,6 +776,24 @@ func HandleUpdateAssignee(queries ticketQuerier) http.HandlerFunc {
 
 		newAssignee := sql.NullInt64{}
 		if req.AssigneeID != nil {
+			count, err := queries.IsUserInSystemAssignees(r.Context(), db.IsUserInSystemAssigneesParams{
+				SystemID: current.SystemID,
+				UserID:   *req.AssigneeID,
+			})
+			if err != nil {
+				slog.ErrorContext(
+					r.Context(), "ticket assignee: check assignee pool",
+					slog.Any("error", err),
+					slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
+				)
+				httperr.InternalError("サーバーエラーが発生しました").Write(w)
+				return
+			}
+			if count == 0 {
+				httperr.UnprocessableEntity("ASSIGNEE_NOT_IN_POOL",
+					"指定された担当者はこのシステムの担当者プールに含まれていません").Write(w)
+				return
+			}
 			newAssignee = sql.NullInt64{Int64: *req.AssigneeID, Valid: true}
 		}
 
@@ -717,7 +801,8 @@ func HandleUpdateAssignee(queries ticketQuerier) http.HandlerFunc {
 			ID:         id,
 			AssigneeID: newAssignee,
 		}); err != nil {
-			slog.ErrorContext(r.Context(), "ticket assignee: update",
+			slog.ErrorContext(
+				r.Context(), "ticket assignee: update",
 				slog.Any("error", err),
 				slog.String("request_id", middleware.RequestIDFromContext(r.Context())),
 			)

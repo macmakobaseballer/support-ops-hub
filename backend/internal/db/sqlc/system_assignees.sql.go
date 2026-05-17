@@ -32,6 +32,22 @@ func (q *Queries) DeleteSystemAssignees(ctx context.Context, systemID int64) err
 	return err
 }
 
+const isUserInSystemAssignees = `-- name: IsUserInSystemAssignees :one
+SELECT COUNT(*) FROM system_assignees WHERE system_id = ? AND user_id = ?
+`
+
+type IsUserInSystemAssigneesParams struct {
+	SystemID int64 `db:"system_id" json:"system_id"`
+	UserID   int64 `db:"user_id" json:"user_id"`
+}
+
+func (q *Queries) IsUserInSystemAssignees(ctx context.Context, arg IsUserInSystemAssigneesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, isUserInSystemAssignees, arg.SystemID, arg.UserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const listSystemAssignees = `-- name: ListSystemAssignees :many
 SELECT system_id, user_id
 FROM system_assignees
