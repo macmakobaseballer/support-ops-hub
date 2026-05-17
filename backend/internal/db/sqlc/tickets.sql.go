@@ -95,6 +95,66 @@ func (q *Queries) GetTicket(ctx context.Context, id int64) (Ticket, error) {
 	return i, err
 }
 
+const getTicketDetail = `-- name: GetTicketDetail :one
+SELECT t.id, t.title, t.description, t.type, t.priority, t.status,
+       t.customer_id, c.name AS customer_name,
+       t.system_id,   s.name AS system_name,
+       t.assignee_id, a.name AS assignee_name,
+       t.created_by,  cb.name AS created_by_name,
+       t.received_at, t.created_at, t.updated_at
+FROM tickets t
+JOIN customers c  ON c.id = t.customer_id
+JOIN systems   s  ON s.id = t.system_id
+LEFT JOIN users a ON a.id = t.assignee_id
+JOIN users     cb ON cb.id = t.created_by
+WHERE t.id = ? LIMIT 1
+`
+
+type GetTicketDetailRow struct {
+	ID            int64           `db:"id" json:"id"`
+	Title         string          `db:"title" json:"title"`
+	Description   sql.NullString  `db:"description" json:"description"`
+	Type          TicketsType     `db:"type" json:"type"`
+	Priority      TicketsPriority `db:"priority" json:"priority"`
+	Status        TicketsStatus   `db:"status" json:"status"`
+	CustomerID    int64           `db:"customer_id" json:"customer_id"`
+	CustomerName  string          `db:"customer_name" json:"customer_name"`
+	SystemID      int64           `db:"system_id" json:"system_id"`
+	SystemName    string          `db:"system_name" json:"system_name"`
+	AssigneeID    sql.NullInt64   `db:"assignee_id" json:"assignee_id"`
+	AssigneeName  sql.NullString  `db:"assignee_name" json:"assignee_name"`
+	CreatedBy     int64           `db:"created_by" json:"created_by"`
+	CreatedByName string          `db:"created_by_name" json:"created_by_name"`
+	ReceivedAt    time.Time       `db:"received_at" json:"received_at"`
+	CreatedAt     time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt     time.Time       `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) GetTicketDetail(ctx context.Context, id int64) (GetTicketDetailRow, error) {
+	row := q.db.QueryRowContext(ctx, getTicketDetail, id)
+	var i GetTicketDetailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.Type,
+		&i.Priority,
+		&i.Status,
+		&i.CustomerID,
+		&i.CustomerName,
+		&i.SystemID,
+		&i.SystemName,
+		&i.AssigneeID,
+		&i.AssigneeName,
+		&i.CreatedBy,
+		&i.CreatedByName,
+		&i.ReceivedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listTickets = `-- name: ListTickets :many
 SELECT id, title, description, type, priority, status,
        customer_id, system_id, assignee_id, created_by,
