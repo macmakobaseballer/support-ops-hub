@@ -102,45 +102,45 @@ func (e UserRole) Valid() bool {
 
 // Attachment defines model for Attachment.
 type Attachment struct {
-	ContentType *string    `json:"content_type,omitempty"`
-	CreatedAt   *time.Time `json:"created_at,omitempty"`
+	ContentType string    `json:"content_type"`
+	CreatedAt   time.Time `json:"created_at"`
 
 	// DownloadUrl 署名付きS3 URL（有効期限: 15分）
-	DownloadUrl *string `json:"download_url,omitempty"`
-	FileName    *string `json:"file_name,omitempty"`
+	DownloadUrl string `json:"download_url"`
+	FileName    string `json:"file_name"`
 
 	// FileSize ファイルサイズ（バイト）
-	FileSize       *int    `json:"file_size,omitempty"`
-	Id             *int64  `json:"id,omitempty"`
-	TicketId       *int64  `json:"ticket_id,omitempty"`
-	UploadedBy     *int64  `json:"uploaded_by,omitempty"`
-	UploadedByName *string `json:"uploaded_by_name,omitempty"`
+	FileSize       int    `json:"file_size"`
+	Id             int64  `json:"id"`
+	TicketId       int64  `json:"ticket_id"`
+	UploadedBy     int64  `json:"uploaded_by"`
+	UploadedByName string `json:"uploaded_by_name"`
 }
 
 // Comment defines model for Comment.
 type Comment struct {
-	AuthorId   *int64     `json:"author_id,omitempty"`
-	AuthorName *string    `json:"author_name,omitempty"`
-	Body       *string    `json:"body,omitempty"`
-	CreatedAt  *time.Time `json:"created_at,omitempty"`
-	Id         *int64     `json:"id,omitempty"`
-	TicketId   *int64     `json:"ticket_id,omitempty"`
+	AuthorId   int64     `json:"author_id"`
+	AuthorName string    `json:"author_name"`
+	Body       string    `json:"body"`
+	CreatedAt  time.Time `json:"created_at"`
+	Id         int64     `json:"id"`
+	TicketId   int64     `json:"ticket_id"`
 }
 
 // Customer defines model for Customer.
 type Customer struct {
-	CreatedAt *time.Time `json:"created_at,omitempty"`
-	Id        *int64     `json:"id,omitempty"`
-	IsActive  *bool      `json:"is_active,omitempty"`
-	Name      *string    `json:"name,omitempty"`
-	Notes     *string    `json:"notes,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	Id        int64     `json:"id"`
+	IsActive  bool      `json:"is_active"`
+	Name      string    `json:"name"`
+	Notes     *string   `json:"notes,omitempty"`
 
 	// SystemCount 紐づくシステム総数（有効・無効含む）。DBカラムではなく SELECT COUNT(*) で動的に計算される。
 	SystemCount *int `json:"system_count,omitempty"`
 
 	// Systems include=systems 指定時のみ返す
 	Systems   *[]SystemSummary `json:"systems,omitempty"`
-	UpdatedAt *time.Time       `json:"updated_at,omitempty"`
+	UpdatedAt time.Time        `json:"updated_at"`
 }
 
 // CustomerCreate defines model for CustomerCreate.
@@ -152,21 +152,21 @@ type CustomerCreate struct {
 
 // CustomerReport defines model for CustomerReport.
 type CustomerReport struct {
-	CountsByStatus *StatusCounts `json:"counts_by_status,omitempty"`
-	CustomerId     *int64        `json:"customer_id,omitempty"`
-	CustomerName   *string       `json:"customer_name,omitempty"`
+	CountsByStatus StatusCounts `json:"counts_by_status"`
+	CustomerId     int64        `json:"customer_id"`
+	CustomerName   string       `json:"customer_name"`
 
 	// MonthlyTrend 過去6ヶ月の月次件数・当月含む（古い順）。集計基準は received_at
-	MonthlyTrend     *[]MonthlyTrendItem `json:"monthly_trend,omitempty"`
-	OpenCountsByType *TypeCounts         `json:"open_counts_by_type,omitempty"`
+	MonthlyTrend     []MonthlyTrendItem `json:"monthly_trend"`
+	OpenCountsByType TypeCounts         `json:"open_counts_by_type"`
 
 	// SystemBreakdown システム別ステータス件数
-	SystemBreakdown *[]struct {
-		Counts     *StatusCounts `json:"counts,omitempty"`
-		SystemId   *int64        `json:"system_id,omitempty"`
-		SystemName *string       `json:"system_name,omitempty"`
-		Total      *int          `json:"total,omitempty"`
-	} `json:"system_breakdown,omitempty"`
+	SystemBreakdown []struct {
+		Counts     StatusCounts `json:"counts"`
+		SystemId   int64        `json:"system_id"`
+		SystemName string       `json:"system_name"`
+		Total      int          `json:"total"`
+	} `json:"system_breakdown"`
 }
 
 // CustomerUpdate defines model for CustomerUpdate.
@@ -178,19 +178,23 @@ type CustomerUpdate struct {
 
 // DashboardSummary defines model for DashboardSummary.
 type DashboardSummary struct {
-	CountsByStatus *StatusCounts `json:"counts_by_status,omitempty"`
+	CountsByStatus StatusCounts `json:"counts_by_status"`
 
 	// MonthlyTrend 過去6ヶ月の月次件数・当月含む（古い順）。集計基準は received_at
-	MonthlyTrend         *[]MonthlyTrendItem `json:"monthly_trend,omitempty"`
-	OpenCountsByPriority *PriorityCounts     `json:"open_counts_by_priority,omitempty"`
-	OpenCountsByType     *TypeCounts         `json:"open_counts_by_type,omitempty"`
+	MonthlyTrend []MonthlyTrendItem `json:"monthly_trend"`
+
+	// OpenCountsByPriority 未完了チケットの優先度別件数
+	OpenCountsByPriority PriorityCounts `json:"open_counts_by_priority"`
+
+	// OpenCountsByType 未完了チケットの種別内訳
+	OpenCountsByType TypeCounts `json:"open_counts_by_type"`
 
 	// TopSystemsByOpenCount 未完了件数上位6システム
-	TopSystemsByOpenCount *[]struct {
-		Count      *int    `json:"count,omitempty"`
-		SystemId   *int64  `json:"system_id,omitempty"`
-		SystemName *string `json:"system_name,omitempty"`
-	} `json:"top_systems_by_open_count,omitempty"`
+	TopSystemsByOpenCount []struct {
+		Count      int    `json:"count"`
+		SystemId   int64  `json:"system_id"`
+		SystemName string `json:"system_name"`
+	} `json:"top_systems_by_open_count"`
 }
 
 // Error defines model for Error.
@@ -207,32 +211,32 @@ type Error struct {
 
 // MonthlyTrendItem defines model for MonthlyTrendItem.
 type MonthlyTrendItem struct {
-	Count *int `json:"count,omitempty"`
+	Count int `json:"count"`
 
 	// Month YYYY-MM 形式
-	Month *string `json:"month,omitempty"`
+	Month string `json:"month"`
 }
 
 // Pagination defines model for Pagination.
 type Pagination struct {
 	// Page 現在ページ
-	Page *int `json:"page,omitempty"`
+	Page int `json:"page"`
 
 	// PerPage 1ページあたりの件数
-	PerPage *int `json:"per_page,omitempty"`
+	PerPage int `json:"per_page"`
 
 	// Total 総件数
-	Total *int `json:"total,omitempty"`
+	Total int `json:"total"`
 
 	// TotalPages 総ページ数
-	TotalPages *int `json:"total_pages,omitempty"`
+	TotalPages int `json:"total_pages"`
 }
 
 // PriorityCounts defines model for PriorityCounts.
 type PriorityCounts struct {
-	High   *int `json:"high,omitempty"`
-	Low    *int `json:"low,omitempty"`
-	Medium *int `json:"medium,omitempty"`
+	High   int `json:"high"`
+	Low    int `json:"low"`
+	Medium int `json:"medium"`
 }
 
 // SidebarData defines model for SidebarData.
@@ -252,24 +256,24 @@ type SidebarData struct {
 
 // StatusCounts defines model for StatusCounts.
 type StatusCounts struct {
-	Done       *int `json:"done,omitempty"`
-	InProgress *int `json:"in_progress,omitempty"`
-	New        *int `json:"new,omitempty"`
-	Waiting    *int `json:"waiting,omitempty"`
+	Done       int `json:"done"`
+	InProgress int `json:"in_progress"`
+	New        int `json:"new"`
+	Waiting    int `json:"waiting"`
 }
 
 // System defines model for System.
 type System struct {
 	// Assignees `GET /systems?include=assignees` または `GET /systems/{id}` の場合のみ返す。省略時は空配列。
-	Assignees    *[]UserSummary `json:"assignees,omitempty"`
-	CreatedAt    *time.Time     `json:"created_at,omitempty"`
-	CustomerId   *int64         `json:"customer_id,omitempty"`
-	CustomerName *string        `json:"customer_name,omitempty"`
-	Description  *string        `json:"description,omitempty"`
-	Id           *int64         `json:"id,omitempty"`
-	IsActive     *bool          `json:"is_active,omitempty"`
-	Name         *string        `json:"name,omitempty"`
-	UpdatedAt    *time.Time     `json:"updated_at,omitempty"`
+	Assignees    []UserSummary `json:"assignees"`
+	CreatedAt    time.Time     `json:"created_at"`
+	CustomerId   int64         `json:"customer_id"`
+	CustomerName string        `json:"customer_name"`
+	Description  *string       `json:"description,omitempty"`
+	Id           int64         `json:"id"`
+	IsActive     bool          `json:"is_active"`
+	Name         string        `json:"name"`
+	UpdatedAt    time.Time     `json:"updated_at"`
 }
 
 // SystemCreate defines model for SystemCreate.
@@ -283,18 +287,18 @@ type SystemCreate struct {
 
 // SystemDashboard defines model for SystemDashboard.
 type SystemDashboard struct {
-	CountsByStatus *StatusCounts `json:"counts_by_status,omitempty"`
-	CustomerId     *int64        `json:"customer_id,omitempty"`
-	CustomerName   *string       `json:"customer_name,omitempty"`
-	SystemId       *int64        `json:"system_id,omitempty"`
-	SystemName     *string       `json:"system_name,omitempty"`
+	CountsByStatus StatusCounts `json:"counts_by_status"`
+	CustomerId     int64        `json:"customer_id"`
+	CustomerName   string       `json:"customer_name"`
+	SystemId       int64        `json:"system_id"`
+	SystemName     string       `json:"system_name"`
 }
 
 // SystemSummary サイドバー・選択肢表示用の軽量システム情報
 type SystemSummary struct {
-	Id       *int64  `json:"id,omitempty"`
-	IsActive *bool   `json:"is_active,omitempty"`
-	Name     *string `json:"name,omitempty"`
+	Id       int64  `json:"id"`
+	IsActive bool   `json:"is_active"`
+	Name     string `json:"name"`
 }
 
 // SystemUpdate defines model for SystemUpdate.
@@ -307,37 +311,37 @@ type SystemUpdate struct {
 
 // Ticket defines model for Ticket.
 type Ticket struct {
-	AssigneeId    *int64     `json:"assignee_id,omitempty"`
-	AssigneeName  *string    `json:"assignee_name,omitempty"`
-	CreatedAt     *time.Time `json:"created_at,omitempty"`
-	CreatedBy     *int64     `json:"created_by,omitempty"`
-	CreatedByName *string    `json:"created_by_name,omitempty"`
-	CustomerId    *int64     `json:"customer_id,omitempty"`
-	CustomerName  *string    `json:"customer_name,omitempty"`
-	Description   *string    `json:"description,omitempty"`
-	Id            *int64     `json:"id,omitempty"`
+	AssigneeId    *int64    `json:"assignee_id,omitempty"`
+	AssigneeName  *string   `json:"assignee_name,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	CreatedBy     int64     `json:"created_by"`
+	CreatedByName string    `json:"created_by_name"`
+	CustomerId    int64     `json:"customer_id"`
+	CustomerName  string    `json:"customer_name"`
+	Description   *string   `json:"description,omitempty"`
+	Id            int64     `json:"id"`
 
 	// Priority - high: 高
 	// - medium: 中
 	// - low: 低
-	Priority   *TicketPriority `json:"priority,omitempty"`
-	ReceivedAt *time.Time      `json:"received_at,omitempty"`
+	Priority   TicketPriority `json:"priority"`
+	ReceivedAt time.Time      `json:"received_at"`
 
 	// Status - new: 新規受付
 	// - in_progress: 対応中
 	// - waiting: 確認待ち
 	// - done: 完了
-	Status     *TicketStatus `json:"status,omitempty"`
-	SystemId   *int64        `json:"system_id,omitempty"`
-	SystemName *string       `json:"system_name,omitempty"`
-	Title      *string       `json:"title,omitempty"`
+	Status     TicketStatus `json:"status"`
+	SystemId   int64        `json:"system_id"`
+	SystemName string       `json:"system_name"`
+	Title      string       `json:"title"`
 
 	// Type - question: 操作方法の質問
 	// - bug: バグ報告
 	// - config: 設定変更依頼
 	// - data: データ修正依頼
-	Type      *TicketType `json:"type,omitempty"`
-	UpdatedAt *time.Time  `json:"updated_at,omitempty"`
+	Type      TicketType `json:"type"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 // TicketCreate 登録時の初期ステータスは常に `new`（新規受付）。
@@ -402,24 +406,24 @@ type TicketUpdate struct {
 
 // TypeCounts defines model for TypeCounts.
 type TypeCounts struct {
-	Bug      *int `json:"bug,omitempty"`
-	Config   *int `json:"config,omitempty"`
-	Data     *int `json:"data,omitempty"`
-	Question *int `json:"question,omitempty"`
+	Bug      int `json:"bug"`
+	Config   int `json:"config"`
+	Data     int `json:"data"`
+	Question int `json:"question"`
 }
 
 // User defines model for User.
 type User struct {
-	CreatedAt *time.Time           `json:"created_at,omitempty"`
-	Email     *openapi_types.Email `json:"email,omitempty"`
-	Id        *int64               `json:"id,omitempty"`
-	IsActive  *bool                `json:"is_active,omitempty"`
-	Name      *string              `json:"name,omitempty"`
+	CreatedAt time.Time           `json:"created_at"`
+	Email     openapi_types.Email `json:"email"`
+	Id        int64               `json:"id"`
+	IsActive  bool                `json:"is_active"`
+	Name      string              `json:"name"`
 
 	// Role - admin: 管理者（全機能アクセス可）
 	// - member: メンバー（チケット操作・閲覧のみ）
-	Role      *UserRole  `json:"role,omitempty"`
-	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	Role      UserRole  `json:"role"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // UserRole - admin: 管理者（全機能アクセス可）
@@ -428,8 +432,8 @@ type UserRole string
 
 // UserSummary 選択肢表示用の軽量ユーザー情報
 type UserSummary struct {
-	Id   *int64  `json:"id,omitempty"`
-	Name *string `json:"name,omitempty"`
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
 }
 
 // CustomerId defines model for customerId.
