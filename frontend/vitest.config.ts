@@ -1,9 +1,16 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
+import AutoImport from 'unplugin-auto-import/vite'
 import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    AutoImport({
+      imports: ['vue'],
+      dts: false,
+    }),
+  ],
   test: {
     environment: 'happy-dom',
     globals: true,
