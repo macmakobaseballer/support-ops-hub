@@ -4,13 +4,8 @@ import AutoImport from 'unplugin-auto-import/vite'
 import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
-  plugins: [
-    vue(),
-    AutoImport({
-      imports: ['vue'],
-      dts: false,
-    }),
-  ],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  plugins: [vue(), AutoImport({ imports: ['vue'], dts: false }) as any],
   test: {
     environment: 'happy-dom',
     globals: true,

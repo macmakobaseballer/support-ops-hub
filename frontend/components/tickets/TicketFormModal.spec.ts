@@ -1,7 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
+import type { components } from '~/types/api'
 import TicketFormModal from './TicketFormModal.vue'
+
+type Ticket = components['schemas']['Ticket']
 
 // Mock Nuxt auto-imports
 vi.mock('#app', () => ({
@@ -35,12 +38,17 @@ vi.stubGlobal('useTicketsStore', () => ({
   update: vi.fn(),
 }))
 
-const defaultProps = {
+interface ModalProps {
+  modelValue: boolean
+  ticket: Ticket | null
+}
+
+const defaultProps: ModalProps = {
   modelValue: true,
   ticket: null,
 }
 
-function createWrapper(props = defaultProps) {
+function createWrapper(props: ModalProps = defaultProps) {
   return mount(TicketFormModal, {
     props,
     global: {
@@ -65,49 +73,48 @@ describe('TicketFormModal', () => {
 
   describe('編集モード（customer_id ロック）', () => {
     it('編集時は顧客企業セレクトが disabled になる', () => {
+      const sampleTicket: Ticket = {
+        id: 1,
+        title: 'テスト',
+        type: 'bug',
+        priority: 'high',
+        status: 'new',
+        customer_id: 1,
+        customer_name: 'テスト企業',
+        system_id: 1,
+        system_name: 'テストシステム',
+        created_by: 1,
+        created_by_name: '管理者',
+        received_at: '2026-05-17T00:00:00Z',
+        created_at: '2026-05-17T00:00:00Z',
+        updated_at: '2026-05-17T00:00:00Z',
+      }
       const wrapper = createWrapper({
         modelValue: true,
-        ticket: {
-          id: 1,
-          title: 'テスト',
-          type: 'bug',
-          priority: 'high',
-          status: 'new',
-          customer_id: 1,
-          customer_name: 'テスト企業',
-          system_id: 1,
-          system_name: 'テストシステム',
-          created_by: 1,
-          created_by_name: '管理者',
-          received_at: '2026-05-17T00:00:00Z',
-          created_at: '2026-05-17T00:00:00Z',
-          updated_at: '2026-05-17T00:00:00Z',
-        },
+        ticket: sampleTicket,
       })
       const customerSelect = wrapper.find('[data-testid="select-customer"]')
       expect(customerSelect.attributes('disabled')).toBeDefined()
     })
 
     it('編集時はシステムセレクトが disabled になる', () => {
-      const wrapper = createWrapper({
-        modelValue: true,
-        ticket: {
-          id: 1,
-          title: 'テスト',
-          type: 'bug',
-          priority: 'high',
-          status: 'new',
-          customer_id: 1,
-          customer_name: 'テスト企業',
-          system_id: 1,
-          system_name: 'テストシステム',
-          created_by: 1,
-          created_by_name: '管理者',
-          received_at: '2026-05-17T00:00:00Z',
-          created_at: '2026-05-17T00:00:00Z',
-          updated_at: '2026-05-17T00:00:00Z',
-        },
-      })
+      const sampleTicket2: Ticket = {
+        id: 1,
+        title: 'テスト',
+        type: 'bug',
+        priority: 'high',
+        status: 'new',
+        customer_id: 1,
+        customer_name: 'テスト企業',
+        system_id: 1,
+        system_name: 'テストシステム',
+        created_by: 1,
+        created_by_name: '管理者',
+        received_at: '2026-05-17T00:00:00Z',
+        created_at: '2026-05-17T00:00:00Z',
+        updated_at: '2026-05-17T00:00:00Z',
+      }
+      const wrapper = createWrapper({ modelValue: true, ticket: sampleTicket2 })
       const systemSelect = wrapper.find('[data-testid="select-system"]')
       expect(systemSelect.attributes('disabled')).toBeDefined()
     })
